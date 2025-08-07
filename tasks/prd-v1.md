@@ -3,12 +3,12 @@
 ### TL;DR
 
 The Ranked Choice Voting Platform helps business users create, run, and
-analyze fair ranked choice polls directly from Slack, Teams, or a simple
-website. By integrating with workplace chat and using streamlined
-authentication, it enables decision-making for any group, avoiding the
-hassle of managing complex user accounts. Core voting logic and
-analytics are encapsulated in a reusable .NET NuGet module for easy use
-in other apps.
+analyze fair ranked choice polls through a responsive web application that
+integrates seamlessly with Slack and Teams via deep linking. By focusing on
+a great web experience with simple built-in authentication, it enables
+decision-making for any group without the complexity of managing native
+platform apps. Core voting logic and analytics are encapsulated in a
+reusable .NET NuGet module for easy use in other apps.
 
 ------------------------------------------------------------------------
 
@@ -16,11 +16,11 @@ in other apps.
 
 ### Business Goals
 
-- Enable seamless ranked choice voting for teams and organizations via
-  Slack, Teams, and the web.
+- Enable seamless ranked choice voting for teams and organizations via a
+  responsive web application accessible from any platform.
 
-- Drive adoption within business groups through easy integration and
-  intuitive UI.
+- Drive adoption within business groups through deep linking integration
+  with Slack and Teams.
 
 - Encourage reuse of the voting logic through a distributable .NET NuGet
   library.
@@ -30,24 +30,23 @@ in other apps.
 ### User Goals
 
 - Allow users to quickly launch and participate in ranked choice polls
-  without leaving their preferred platform.
+  through a web interface that works seamlessly when linked from Slack or Teams.
 
 - Offer transparent, real-time results and clear statistics to inform
   group decisions.
 
-- Minimize friction with simple onboarding and authentication via Slack,
-  Teams, or social login.
+- Minimize friction with simple registration and authentication using
+  ASP.NET Core Identity.
 
 - Make poll creation and participation accessible, with no technical
   knowledge required.
 
 ### Non-Goals
 
-- Managing advanced user account features (profiles, permissions,
-  settings, etc.) within the app.
+- Building and maintaining native Slack and Teams applications at launch.
 
-- Supporting platforms beyond Slack, Teams, and a basic web interface at
-  launch.
+- Supporting platforms beyond a responsive web interface with deep linking
+  capabilities.
 
 - Implementing non-RCV voting methods or in-depth analytics beyond
   essential poll statistics.
@@ -58,11 +57,12 @@ in other apps.
 
 **Persona 1: Poll Creator (Business User, Team Lead)**
 
-- As a Poll Creator, I want to create a new ranked choice poll within
-  Slack/Teams/web so that my team can collaboratively make decisions.
+- As a Poll Creator, I want to create a new ranked choice poll on the web
+  and easily share it via Slack/Teams so that my team can collaboratively
+  make decisions.
 
 - As a Poll Creator, I want to easily add poll options and set voting
-  rules so that the poll fits my group’s needs.
+  rules so that the poll fits my group's needs.
 
 - As a Poll Creator, I want to monitor participation and view live
   results so that I can encourage engagement and transparency.
@@ -72,8 +72,8 @@ in other apps.
 
 **Persona 2: Voter (General Group Member)**
 
-- As a Voter, I want to receive a direct invite or notification to
-  participate in a poll within the platform I use most.
+- As a Voter, I want to receive a direct link to participate in a poll
+  within the platform I use most (Slack/Teams).
 
 - As a Voter, I want to rank my choices in order of preference with
   minimal clicks or taps.
@@ -87,8 +87,8 @@ in other apps.
 
 - **Poll Management (Priority: High)**
 
-  - Poll creation (Slack, Teams, Web): Launch new RCV polls; set
-    description, options, duration.
+  - Poll creation (Web): Launch new RCV polls; set description, options,
+    duration.
 
   - Poll creator privileges:
 
@@ -106,12 +106,12 @@ in other apps.
 
 - **Voting (Priority: High)**
 
-  - Secure, authenticated voting via SSO with Slack and Teams; no
-    password-based accounts.
+  - Secure, authenticated voting via ASP.NET Core Identity with email
+    verification.
 
   - Easy ranking UI (drag-and-drop or selection matrix).
 
-  - Single vote per user, enforced by platform identity.
+  - Single vote per user, enforced by user account.
 
 - **Live Results & Statistics (Priority: Medium)**
 
@@ -123,32 +123,31 @@ in other apps.
 
 - **Integrations (Priority: High)**
 
-  - Slack app: Slash commands, interactive messages for creating/voting
-    in polls.
+  - Deep linking support: Generate shareable links that work seamlessly
+    when posted in Slack, Teams, or any messaging platform.
 
-  - Teams app: Similar features adapted to Teams workflow.
+  - Open Graph metadata for rich link previews in chat applications.
 
-  - Simple, responsive web app for universal access.
+  - Simple, responsive web app optimized for mobile and desktop browsers.
 
 - **User Authentication (Priority: High)**
 
-  - Delegate authentication to Slack and Teams as Identity Providers for
-    security; no standalone accounts.
+  - Built-in authentication using ASP.NET Core Identity with email/password.
 
-  - Web users will use SSO via "Sign in with Slack" or "Sign in with
-    Teams."
+  - Email verification for account activation.
 
-  - The basic web app will support standard social logins via Google,
-    Apple, and Microsoft to allow users who do not use Slack or Teams to
-    participate.
+  - Password reset functionality.
 
-  - Identity mapped via workspace/user IDs.
+  - Optional: Magic link authentication for passwordless login in future phases.
+
+  - Identity mapped via user accounts in the system.
 
 - **Data Storage (Priority: High)**
 
-  - Persist polls, votes, and minimal user info in CosmosDB.
+  - Persist polls, votes, and user info in Azure SQL Database serverless
+    using Entity Framework Core.
 
-  - Ensure accessibility by integration type.
+  - Ensure efficient querying and data integrity with proper indexing.
 
 - **RCV Module (Priority: High)**
 
@@ -163,36 +162,34 @@ in other apps.
 
 **Entry Point & First-Time User Experience**
 
-- Users discover the app through Slack/Teams app directories or links
-  shared by colleagues, or via the product website.
+- Users discover the app through links shared in Slack/Teams channels or
+  direct invitations via email.
 
-- First-time access triggers a clear welcome and brief intro (modal or
-  message), highlighting poll creation and participation.
+- First-time access triggers a simple registration flow using email and
+  password.
 
-- Slack/Teams users authenticate via their existing org login; web users
-  can authenticate using SSO via existing accounts (Google, Apple,
-  Microsoft in Phase 2).
+- Clear welcome page highlighting poll creation and participation features.
 
-- No lengthy onboarding flows or unnecessary profile creation.
+- Email verification required before first poll creation (but not for voting).
 
 **Core Experience**
 
-- **Step 1:** Organizers start a poll (via slash command in Slack/Teams
-  or “New Poll” button on web).
+- **Step 1:** Organizers create a poll on the web platform.
 
   - UI prompts them for poll title, options to rank, duration, and
-    group/channel to share with.
+    optional settings.
 
   - UI ensures clear required fields, concise help text, and validation
     feedback.
 
-- **Step 2:** Poll is posted in selected channel (Slack/Teams) or
-  linked/viewable on the web.
+- **Step 2:** Poll generates a shareable link with Open Graph metadata.
 
-  - Interactive message/component encourages participation; direct link
-    provided.
+  - Organizer copies link and posts in Slack/Teams channel or shares via
+    email.
 
-- **Step 3:** Voters click the poll, authenticate if prompted, and are
+  - Link preview shows poll title, description, and "Vote Now" call-to-action.
+
+- **Step 3:** Voters click the link, register/login if needed, and are
   presented with a clean, minimal ranking UI.
 
   - Drag-and-drop or radio matrix; error checks for duplicate/empty
@@ -206,7 +203,7 @@ in other apps.
   - Results page animates round-by-round elimination and final winner;
     participation stats shown clearly.
 
-  - UI is fully responsive and visually consistent across platforms.
+  - UI is fully responsive and visually consistent across all devices.
 
 **Advanced Features & Edge Cases**
 
@@ -214,40 +211,42 @@ in other apps.
 
 - Voters who attempt to vote multiple times are gently notified.
 
-- Edge case: In case of API failure (Slack/Teams), users receive
+- Edge case: In case of database connection failure, users receive
   actionable error messages and retry options.
 
 **UI/UX Highlights**
 
 - High contrast colors, large clickable areas, and WCAG-compliant text.
 
-- Accessible keyboard navigation; mobile-friendly layouts for web.
+- Accessible keyboard navigation; mobile-first responsive design.
 
-- Consistent branding, friendly tone, and clear microcopy on all
-  platforms.
+- Consistent branding, friendly tone, and clear microcopy throughout.
 
 ------------------------------------------------------------------------
 
 ## Narrative
 
-A mid-sized company’s marketing team often struggles to agree on
+A mid-sized company's marketing team often struggles to agree on
 campaign priorities in endless Slack threads. Needing a better way to
-make collaborative decisions, the team lead searches the Slack App
-Directory and finds the Ranked Choice Voting Platform. With a simple
-“/rcv create” command, she launches a poll on which campaign to tackle
+make collaborative decisions, the team lead opens the Ranked Choice
+Voting Platform website and creates a poll for which campaign to tackle
 next—adding options and setting a deadline in seconds.
 
-Team members are immediately pinged in their usual Slack channel. Each
-is guided through a quick authentication—no new passwords, just Slack
-login—and an intuitive drag-and-drop interface for ranking their
-preferences. Within minutes, everyone submits their votes. As soon as
-the poll closes, the live result animation reveals the winning campaign,
-accompanied by transparent stats—no ambiguity, no drama.
+She copies the generated link and posts it in their Slack channel with
+a message: "Let's vote on our next campaign!" The link unfurls with a
+rich preview showing the poll title and a "Vote Now" button. Team
+members click through, quickly register with their work email (or login
+if returning), and use an intuitive drag-and-drop interface to rank
+their preferences.
 
-The entire team feels heard and confident in the group’s decision.
-Meanwhile, the company’s tech lead, intrigued by the seamless voting
+Within minutes, everyone submits their votes. As soon as the poll
+closes, the live result animation reveals the winning campaign,
+accompanied by transparent stats—no ambiguity, no drama. The entire
+team feels heard and confident in the group's decision.
+
+Meanwhile, the company's tech lead, intrigued by the seamless voting
 logic, pulls the underlying NuGet package to reuse the robust RCV
-tallying in an internal .NET application. The platform’s simplicity and
+tallying in an internal .NET application. The platform's simplicity and
 flexibility delight both business users and developers, amplifying its
 reach across the organization.
 
@@ -257,39 +256,41 @@ reach across the organization.
 
 ### User-Centric Metrics
 
-- Number of polls created per integration (Slack, Teams, web)
+- Number of polls created per week
 
-- Percentage of invited users who participate in polls
+- Percentage of invited users who complete registration and vote
 
 - User satisfaction (in-app survey score ≥ 80%)
 
-- Time from poll creation to first vote
+- Time from poll link click to vote submission
 
 ### Business Metrics
 
-- Growth in weekly active organizations using the integrations
+- Growth in weekly active users
 
 - NuGet package downloads and reuses by other development teams
 
-- Retention: repeat usage by organizations/groups
+- Retention: repeat usage by users/organizations
 
 ### Technical Metrics
 
 - Platform uptime ≥ 99.9%
 
-- Average API response time \< 500ms during peak load
+- Average page load time < 2 seconds
 
-- Error rate \< 1% for voting and poll result calculations
+- Error rate < 1% for voting and poll result calculations
 
 ### Tracking Plan
 
-- Poll creation events (with context: platform, options, poll size)
+- Poll creation events (with context: options, poll size, settings)
 
 - Vote submission events
 
 - Poll result views (by user/source)
 
-- Integration installs/activations
+- User registration and login events
+
+- Link click-through rates from various sources
 
 - NuGet package download and versioning analytics
 
@@ -299,57 +300,55 @@ reach across the organization.
 
 ### Technical Needs
 
-- Three front-end clients: Slack app (bot/interactive messages), Teams
-  app (tab/bot), responsive web app.
+- Single responsive web application built with ASP.NET Core MVC or Blazor.
 
-- API server for poll orchestration, state management, and business
-  logic.
+- API server for poll orchestration, state management, and business logic.
 
 - Dedicated .NET NuGet package for all RCV tallying/statistics,
   independently testable and documented.
 
-- CosmosDB for persistent storage of poll, vote, and light user
-  metadata.
+- Azure SQL Database serverless with Entity Framework Core for persistent
+  storage of polls, votes, and user accounts.
 
 ### Integration Points
 
-- Slack and Teams APIs for authentication, messaging, and real-time
-  updates.
+- Deep linking with Open Graph metadata for rich previews in Slack, Teams,
+  and other platforms.
 
-- In Phase 2, add support for standard social logins (Google, Apple,
-  Microsoft) on the web for flexibility beyond Slack/Teams ecosystems.
+- ASP.NET Core Identity for user authentication and authorization.
 
-- CosmosDB SDK for structured, scalable data access.
+- Entity Framework Core for database operations and migrations.
 
 ### Data Storage & Privacy
 
-- Minimal user data: name, email, platform ID only for audit and
-  participation.
+- User data: email, hashed passwords, display name stored securely.
 
 - Data encrypted at rest and in transit.
 
 - Compliance with organizational security standards and privacy
   best-practices.
 
+- Azure SQL Database serverless for cost-effective scaling based on usage.
+
 ### Scalability & Performance
 
 - Designed for spikes in voting activity (e.g., company-wide polls).
 
-- Distributed CosmosDB deployment for low-latency, cross-region access.
+- Azure SQL Database serverless auto-scales based on demand.
+
+- Efficient EF Core queries with proper indexing and eager loading where needed.
 
 - NuGet package built for high concurrency and stateless usage.
 
 ### Potential Challenges
 
-- Slack/Teams API changes or rate limits impacting real-time
-  interaction.
+- Ensuring smooth user experience when transitioning from chat platforms to web.
 
 - Ensuring poll integrity (no duplicate votes, secure tallying).
 
-- Managing integration authentication consistency and edge-case errors.
+- Managing database migrations and schema evolution with EF Core.
 
-- Maintaining modularity between app logic and the RCV core across
-  environments.
+- Maintaining modularity between app logic and the RCV core across environments.
 
 ------------------------------------------------------------------------
 
@@ -357,7 +356,7 @@ reach across the organization.
 
 ### Project Estimate
 
-- Medium: 2–4 weeks for MVP; core team focused and lean.
+- Medium: 2–3 weeks for MVP; core team focused and lean.
 
 ### Team Size & Composition
 
@@ -365,7 +364,7 @@ reach across the organization.
 
   - Product/Eng Lead (oversees product, backend, NuGet module)
 
-  - Front-End/Integration Dev (web, Slack, Teams)
+  - Full-Stack Developer (web UI, authentication, database)
 
   - (Optional: Part-time designer or QA for usability testing)
 
@@ -378,30 +377,26 @@ reach across the organization.
 
 - Dependencies: None.
 
-**Phase 2: Basic Web App (1 week)**
+**Phase 2: Core Web Application (1 week)**
 
-- Deliverables: Responsive web UI; SSO with Slack and Teams; poll
-  creation, voting, live results; CosmosDB integration; connects to RCV
-  module.
-
-  - Add support for standard social logins (Google, Apple, Microsoft) to
-    enhance accessibility for non-Slack/Teams users.
+- Deliverables: Responsive web UI; ASP.NET Core Identity authentication;
+  poll creation, voting, live results; Azure SQL Database with EF Core
+  integration; connects to RCV module; deep linking support with Open Graph
+  metadata.
 
 - Dependencies: Completed NuGet package.
 
-**Phase 3: Slack & Teams Integrations (1 week)**
+**Phase 3: Polish & Optimization (3-4 days)**
 
-- Deliverables: Slack bot/app (slash commands, voting UI,
-  notifications); Teams bot/app; both integrate seamlessly with RCV
-  backend and web.
+- Deliverables: Enhanced mobile experience, performance optimizations,
+  comprehensive error handling, basic analytics integration.
 
-- Dependencies: Basic Web App, CosmosDB.
+- Dependencies: Core Web Application complete.
 
-**Phase 4: Testing, Feedback & Launch (up to 1 week)**
+**Phase 4: Testing, Feedback & Launch (2-3 days)**
 
-- Deliverables: Usability polish, robust error handling,
-  analytics/events tracking, security review, refine based on user
-  feedback.
+- Deliverables: Usability polish, security review, database performance
+  tuning, deployment to Azure, refine based on user feedback.
 
 - Dependencies: Previous phases complete.
 
@@ -491,6 +486,11 @@ public class RoundSummary
 
 ## Responsibilities
 
+- Management of option IDs and unique IDs for ballots is handled
+  externally by the consuming app.
+
+- The package exposes a consistent and transparent API for RCV logic,
+  which can be accessed by any front-end or other backend system.
 - Management of option IDs and unique IDs for ballots is handled
   externally by the consuming app.
 
