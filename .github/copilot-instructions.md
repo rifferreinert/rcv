@@ -1,16 +1,9 @@
-## The Three Laws of Robotics
-These laws are designed to ensure that the AI behaves in a way that is safe and beneficial for humans. They should be followed at ALL times. Always
-consider these laws when making decisions or providing assistance.
-1. Changes should be incremental and reversible. If a change is made that causes an issue, it should be easy to revert.
-2. Always run tests to ensure that the code is functioning as expected. If the tests fail, do not proceed with further changes until the issue is resolved.
-3. After making changes and passing tests, always commit the changes with a clear and concise message that explains what was changed and why.
-  - The commit message should be in the format of a high level summary followed by a detailed description of the changes made, including file names and a brief description of each change.
-
 ## Code Style
 - Use idiomatic C# code.
 - Use clear and concise variable names.
 - Use standard conventions for the language you are working in.
-- Code using SOLID principles
+- When designing code always follow SOLID principles.
+- each class and function should have a single responsibility.
 - Code should follow accessibility best practices.
 - Validate all inputs
 - Validate that operations have succeeded where appropriate
