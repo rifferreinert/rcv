@@ -438,48 +438,147 @@ Option IDs.
 - Edge case markers: for example, incomplete/invalid ballots, ties, or
   ambiguous outcomes
 
-**Public API Sketch (C#-ish):**
+**Public API Specification:**
 
 ```csharp
+/// <summary>
+/// Provides ranked choice voting (instant-runoff) calculation for a set of options.
+/// This class is immutable and thread-safe after construction.
+/// </summary>
 public class RankedChoicePoll
 {
-    // Initialize with your poll options
+    /// <summary>
+    /// Initialize with poll options. Requires minimum 2 options with unique IDs.
+    /// </summary>
+    /// <param name="options">The candidates/options voters can rank</param>
+    /// <exception cref="ArgumentException">Thrown when less than 2 options or duplicate IDs provided</exception>
     public RankedChoicePoll(IEnumerable<Option> options);
 
-    // Add many ballots at once (could be called once at poll close)
-    public void AddBallots(IEnumerable<RankedBallot> ballots);
-
-    // Tally and return high-level results: winner, round summaries, etc.
-    public RcvResult CalculateResult();
+    /// <summary>
+    /// Calculate election results using instant-runoff voting algorithm.
+    /// Pure function - produces same result for same ballots every time.
+    /// </summary>
+    /// <param name="ballots">Voter preferences as ranked lists of option IDs</param>
+    /// <returns>Complete election results including winner/tie, round-by-round data, and statistics</returns>
+    /// <exception cref="ArgumentNullException">Thrown when ballots is null</exception>
+    /// <exception cref="ArgumentException">Thrown when ballots contain invalid option IDs or duplicate rankings</exception>
+    public RcvResult CalculateResult(IEnumerable<RankedBallot> ballots);
 }
 
-// Ballot structure
+/// <summary>
+/// Represents a single voter's ranked preferences.
+/// Immutable after construction.
+/// </summary>
 public class RankedBallot
 {
-    public List<Guid> RankedOptionIds { get; set; }
+    /// <summary>
+    /// Ordered list of option IDs from most to least preferred.
+    /// Voters may rank all or a subset of available options (partial ballots supported).
+    /// </summary>
+    public IReadOnlyList<Guid> RankedOptionIds { get; }
+
+    /// <param name="rankedOptionIds">Ordered preference list, cannot be null or contain duplicates</param>
+    public RankedBallot(IEnumerable<Guid> rankedOptionIds);
 }
 
-// Option representation
+/// <summary>
+/// Represents a poll option/candidate.
+/// Immutable record with value equality based on Id and Label.
+/// </summary>
+/// <param name="Id">Unique identifier for this option</param>
+/// <param name="Label">Human-readable name/description</param>
 public record Option(Guid Id, string Label);
 
-// What is returned as the result
+/// <summary>
+/// Complete results of a ranked choice election.
+/// Immutable after construction.
+/// </summary>
 public class RcvResult
 {
-    public Option Winner { get; set; }
-    public List<RoundSummary> Rounds { get; set; }
-    public bool IsTie { get; set; }
-    public List<Option> TiedOptions { get; set; }
-    public Dictionary<Option, int> FinalVoteTotals { get; set; }
-    // Add other stats or edge cases as needed
+    /// <summary>
+    /// The winning option, or null if election ended in tie.
+    /// </summary>
+    public Option? Winner { get; }
+
+    /// <summary>
+    /// Round-by-round elimination data showing vote transfers.
+    /// Always contains at least one round.
+    /// </summary>
+    public IReadOnlyList<RoundSummary> Rounds { get; }
+
+    /// <summary>
+    /// True when election ended in unbreakable tie, false otherwise.
+    /// </summary>
+    public bool IsTie { get; }
+
+    /// <summary>
+    /// Options that tied for the win (empty list when IsTie is false).
+    /// </summary>
+    public IReadOnlyList<Option> TiedOptions { get; }
+
+    /// <summary>
+    /// Final vote counts by option ID after all elimination rounds.
+    /// Uses Guid keys for stability (not affected by Option property changes).
+    /// </summary>
+    public IReadOnlyDictionary<Guid, int> FinalVoteTotals { get; }
+
+    /// <summary>
+    /// Constructs election results with validation.
+    /// </summary>
+    public RcvResult(
+        Option? winner,
+        IEnumerable<RoundSummary> rounds,
+        IReadOnlyDictionary<Guid, int> finalVoteTotals,
+        IEnumerable<Option>? tiedOptions = null);
 }
 
+/// <summary>
+/// Snapshot of vote distribution in a single elimination round.
+/// Immutable after construction.
+/// </summary>
 public class RoundSummary
 {
-    public int RoundNumber { get; set; }
-    public Dictionary<Option, int> VoteCounts { get; set; }
-    public Option EliminatedOption { get; set; }
+    /// <summary>
+    /// Round number (1-indexed). Round 1 is initial vote count.
+    /// </summary>
+    public int RoundNumber { get; }
+
+    /// <summary>
+    /// Vote count for each remaining option (by option ID) in this round.
+    /// Uses Guid keys for stability.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, int> VoteCounts { get; }
+
+    /// <summary>
+    /// The option eliminated in this round, or null for the final round.
+    /// </summary>
+    public Option? EliminatedOption { get; }
+
+    /// <summary>
+    /// Constructs a round summary with validation.
+    /// </summary>
+    public RoundSummary(
+        int roundNumber,
+        IReadOnlyDictionary<Guid, int> voteCounts,
+        Option? eliminatedOption = null);
 }
 ```
+
+**Design Principles:**
+
+1. **Purely Functional** - `CalculateResult()` is a pure function with no side effects. Same ballots always produce identical results.
+
+2. **Immutability** - All data models use read-only properties initialized in constructors, preventing accidental modification.
+
+3. **Thread Safety** - `RankedChoicePoll` is thread-safe after construction since it stores no mutable state.
+
+4. **Explicit Nullability** - Uses C# nullable reference types (`Option?`) to clearly express when values may be absent.
+
+5. **Stable Dictionary Keys** - Uses `Guid` instead of `Option` objects as dictionary keys to prevent equality issues if `Option` gains additional properties.
+
+6. **Constructor Validation** - All invalid states (null arguments, empty collections, logical inconsistencies) are caught at construction time.
+
+7. **JSON Serialization** - All models support `System.Text.Json` serialization for easy persistence and API responses.
 
 ### What It Never Does:
 

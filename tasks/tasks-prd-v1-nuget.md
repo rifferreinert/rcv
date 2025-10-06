@@ -1,9 +1,10 @@
 ## Relevant Files
 
 - `src/Rcv.Core/Domain/Option.cs` – Immutable record representing a poll option.
-- `src/Rcv.Core/Domain/RankedBallot.cs` – Ballot model holding a voter’s ordered choices.
-- `src/Rcv.Core/Domain/RcvResult.cs` – Aggregate result returned by the tally.
-- `src/Rcv.Core/Domain/RoundSummary.cs` – Per-round snapshot of vote counts and eliminations.
+- `src/Rcv.Core/Domain/RankedBallot.cs` – Immutable ballot model holding a voter's ordered choices.
+- `src/Rcv.Core/Domain/RcvResult.cs` – Immutable aggregate result returned by the tally.
+- `src/Rcv.Core/Domain/RoundSummary.cs` – Immutable per-round snapshot of vote counts and eliminations.
+- `src/Rcv.Core/RankedChoicePoll.cs` – Public façade exposing the purely functional API.
 - `src/Rcv.Core/Internal/RcvCalculator.cs` – Internal algorithm implementation.
 - `tests/Rcv.Core.Tests/RankedChoicePollTests.cs` – Unit tests for public API & core logic.
 - `tests/Rcv.Core.Tests/RcvCalculatorEdgeCaseTests.cs` – Edge-case & regression tests.
@@ -14,16 +15,19 @@
 
 - Tests use xUnit; run with `dotnet test`.
 - Each domain model produces XML doc comments for IntelliSense and NuGet.
+- **Purely functional design**: `RankedChoicePoll.CalculateResult()` takes ballots as input and returns results. No mutable state.
+- **Immutability**: All models use read-only properties with constructor validation.
+- **Thread safety**: Library is thread-safe after construction due to immutable design.
 - Maintain SOLID design by keeping calculation logic in `RcvCalculator` and exposing only immutable models through the public API.
 
 ## Tasks
 
 - [ ] 1.0 Define the public API and data structures for the RCV NuGet package
-  - [ ] 1.1 Review PRD API sketch and map required classes & methods
-  - [ ] 1.2 Create domain models (`Option`, `RankedBallot`, `RcvResult`, `RoundSummary`) with XML comments; ensure all models support `System.Text.Json` serialization
-  - [ ] 1.3 Draft `RankedChoicePoll` façade with constructor, `AddBallots`, and `CalculateResult` stubs
-  - [ ] 1.4 Validate naming, accessibility, and immutability against C# conventions
-  - [ ] 1.5 Write initial unit tests asserting API shape (compiles, correct signatures); validate minimum 2 options required and options have unique ID
+  - [ ] 1.1 Review PRD API specification and map required classes & methods
+  - [ ] 1.2 Create immutable domain models (`Option`, `RankedBallot`, `RcvResult`, `RoundSummary`) with XML comments, read-only properties, and constructor validation; ensure all models support `System.Text.Json` serialization
+  - [ ] 1.3 Draft `RankedChoicePoll` façade with constructor and `CalculateResult(IEnumerable<RankedBallot>)` stub (purely functional - no AddBallots method)
+  - [ ] 1.4 Validate naming, accessibility, and immutability against C# conventions; ensure nullable reference types are enabled
+  - [ ] 1.5 Write initial unit tests asserting API shape (compiles, correct signatures); validate minimum 2 options required and options have unique IDs
 
 - [ ] 2.0 Implement the core ranked-choice tallying algorithm
   - [ ] 2.1 Add `RcvCalculator` with single-winner elimination loop; handle immediate majority winner (>50% first-choice votes); support partial ballots (voters ranking subset of options)
