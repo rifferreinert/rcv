@@ -1,9 +1,5 @@
 ## Relevant Files
 
-- `src/Rc- [ ] 2.0 Implement the core ranked-choice tallying algorithm
-  - [ ] 2.1 Add `RcvCalculator` with single-winner elimination loop; handle immediate majority winner (>50% first-choice votes); support partial ballots (voters ranking subset of options)
-  - [ ] 2.2 Pass minimal "happy-path" unit tests (simple three-option election)
-  - [ ] 2.3 Refactor for readability (extract helper methods, apply LINQ where clear)re/RankedChoicePoll.cs` – Public façade exposing the main API surface.
 - `src/Rcv.Core/Domain/Option.cs` – Immutable record representing a poll option.
 - `src/Rcv.Core/Domain/RankedBallot.cs` – Ballot model holding a voter’s ordered choices.
 - `src/Rcv.Core/Domain/RcvResult.cs` – Aggregate result returned by the tally.
@@ -27,12 +23,12 @@
   - [ ] 1.2 Create domain models (`Option`, `RankedBallot`, `RcvResult`, `RoundSummary`) with XML comments; ensure all models support `System.Text.Json` serialization
   - [ ] 1.3 Draft `RankedChoicePoll` façade with constructor, `AddBallots`, and `CalculateResult` stubs
   - [ ] 1.4 Validate naming, accessibility, and immutability against C# conventions
-  - [ ] 1.5 Write initial unit tests asserting API shape (compiles, correct signatures); validate minimum 2 options required and options have unique IDs
+  - [ ] 1.5 Write initial unit tests asserting API shape (compiles, correct signatures); validate minimum 2 options required and options have unique ID
 
 - [ ] 2.0 Implement the core ranked-choice tallying algorithm
-  - [ ] 2.1 Add `RcvCalculator` with single-winner elimination loop (no edge-case handling yet)
-  - [ ] 2.2 Pass minimal “happy-path” unit tests (simple three-option election)
-  - [ ] 2.3 Refactor for readability (extract helper methods, apply LINQ where clear)
+  - [ ] 2.1 Add `RcvCalculator` with single-winner elimination loop; handle immediate majority winner (>50% first-choice votes); support partial ballots (voters ranking subset of options)
+  - [ ] 2.2 Pass minimal "happy-path" unit tests (simple three-option election)
+  - [ ] 2.3 Refactor for readability (extract helper methods, apply LINQ where clear)re/RankedChoicePoll.cs` – Public façade exposing the main API surface.
 
 - [ ] 3.0 Handle edge cases and input validation
   - [ ] 3.1 Validate ballots (unknown option IDs, duplicate rankings); throw descriptive exceptions for invalid ballots on save attempt

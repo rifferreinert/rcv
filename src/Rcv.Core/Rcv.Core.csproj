@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    
+    <!-- NuGet Package Metadata -->
+    <PackageId>Rcv.Core</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Authors>RCV Team</Authors>
+    <Company>RCV Platform</Company>
+    <Product>Ranked Choice Voting Core Library</Product>
+    <Description>A .NET library for conducting ranked choice voting (RCV) elections with comprehensive statistics and round-by-round elimination tracking.</Description>
+    <PackageTags>ranked-choice voting;rcv;election;voting;democracy;poll</PackageTags>
+    <PackageProjectUrl>https://github.com/rifferreinert/rcv</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/rifferreinert/rcv</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    
+    <!-- Generate XML documentation for IntelliSense and NuGet -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+</Project>
