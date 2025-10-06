@@ -456,13 +456,15 @@ public class RankedChoicePoll
 
     /// <summary>
     /// Calculate election results using instant-runoff voting algorithm.
-    /// Pure function - produces same result for same ballots every time.
+    /// Note: When multiple candidates tie for last place, one is randomly selected for elimination.
+    /// Use a seeded Random instance for deterministic results.
     /// </summary>
     /// <param name="ballots">Voter preferences as ranked lists of option IDs</param>
+    /// <param name="random">Optional Random instance for tie-breaking. If null, uses new Random()</param>
     /// <returns>Complete election results including winner/tie, round-by-round data, and statistics</returns>
     /// <exception cref="ArgumentNullException">Thrown when ballots is null</exception>
     /// <exception cref="ArgumentException">Thrown when ballots contain invalid option IDs or duplicate rankings</exception>
-    public RcvResult CalculateResult(IEnumerable<RankedBallot> ballots);
+    public RcvResult CalculateResult(IEnumerable<RankedBallot> ballots, Random? random = null);
 }
 
 /// <summary>

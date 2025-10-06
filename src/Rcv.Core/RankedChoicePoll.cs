@@ -40,20 +40,22 @@ public class RankedChoicePoll
     }
 
     /// <summary>
-    /// Calculate election results using instant-runoff voting algorithm.
-    /// Pure function - produces same result for same ballots every time.
+    /// Calculate election results using the provided RCV calculator algorithm.
+    /// Allows different calculation strategies to be plugged in (e.g., Instant Runoff, Borda Count).
     /// </summary>
     /// <param name="ballots">Voter preferences as ranked lists of option IDs</param>
+    /// <param name="calculator">The RCV calculation algorithm to use</param>
+    /// <param name="random">Optional Random instance for algorithms that need tie-breaking. If null, uses new Random()</param>
     /// <returns>Complete election results including winner/tie, round-by-round data, and statistics</returns>
-    /// <exception cref="ArgumentNullException">Thrown when ballots is null</exception>
-    /// <exception cref="ArgumentException">Thrown when ballots contain invalid option IDs or duplicate rankings</exception>
-    public RcvResult CalculateResult(IEnumerable<RankedBallot> ballots)
+    /// <exception cref="ArgumentNullException">Thrown when ballots or calculator is null</exception>
+    public RcvResult CalculateResult(IEnumerable<RankedBallot> ballots, IRcvCalculator calculator, Random? random = null)
     {
         if (ballots == null)
             throw new ArgumentNullException(nameof(ballots));
 
-        // TODO: Implement RCV algorithm
-        // For now, return a stub result to make it compile
-        throw new NotImplementedException("RCV calculation not yet implemented");
+        if (calculator == null)
+            throw new ArgumentNullException(nameof(calculator));
+
+        return calculator.Calculate(_options, ballots, random);
     }
 }

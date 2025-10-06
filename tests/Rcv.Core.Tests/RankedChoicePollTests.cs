@@ -1,3 +1,4 @@
+using Rcv.Core.Calculators;
 using Rcv.Core.Domain;
 
 namespace Rcv.Core.Tests;
@@ -78,13 +79,14 @@ public class RankedChoicePollTests
             new Option(Guid.NewGuid(), "Bob")
         };
         var poll = new RankedChoicePoll(options);
+        var calculator = new InstantRunoffCalculator();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => poll.CalculateResult(null!));
+        Assert.Throws<ArgumentNullException>(() => poll.CalculateResult(null!, calculator));
     }
 
     [Fact]
-    public void CalculateResult_ThrowsNotImplemented()
+    public void CalculateResult_ThrowsOnNullCalculator()
     {
         // Arrange
         var options = new[]
@@ -96,6 +98,6 @@ public class RankedChoicePollTests
         var ballots = new[] { new RankedBallot(new[] { options[0].Id }) };
 
         // Act & Assert
-        Assert.Throws<NotImplementedException>(() => poll.CalculateResult(ballots));
+        Assert.Throws<ArgumentNullException>(() => poll.CalculateResult(ballots, null!));
     }
 }
