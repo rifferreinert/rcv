@@ -146,7 +146,7 @@ in other apps.
 
 - **Data Storage (Priority: High)**
 
-  - Persist polls, votes, and minimal user info in CosmosDB.
+  - Persist polls, votes, and minimal user info in Azure SQL Database (Serverless tier for cost optimization).
 
   - Ensure accessibility by integration type.
 
@@ -308,7 +308,7 @@ reach across the organization.
 - Dedicated .NET NuGet package for all RCV tallying/statistics,
   independently testable and documented.
 
-- CosmosDB for persistent storage of poll, vote, and light user
+- Azure SQL Database (Serverless) for persistent storage of poll, vote, and light user
   metadata.
 
 ### Integration Points
@@ -319,7 +319,7 @@ reach across the organization.
 - In Phase 2, add support for standard social logins (Google, Apple,
   Microsoft) on the web for flexibility beyond Slack/Teams ecosystems.
 
-- CosmosDB SDK for structured, scalable data access.
+- Entity Framework Core for data access to Azure SQL Database.
 
 ### Data Storage & Privacy
 
@@ -335,7 +335,7 @@ reach across the organization.
 
 - Designed for spikes in voting activity (e.g., company-wide polls).
 
-- Distributed CosmosDB deployment for low-latency, cross-region access.
+- Azure SQL Database with auto-scaling serverless compute.
 
 - NuGet package built for high concurrency and stateless usage.
 
@@ -381,7 +381,7 @@ reach across the organization.
 **Phase 2: Basic Web App (1 week)**
 
 - Deliverables: Responsive web UI; SSO with Slack and Teams; poll
-  creation, voting, live results; CosmosDB integration; connects to RCV
+  creation, voting, live results; Azure SQL Database integration with Entity Framework Core; connects to RCV
   module.
 
   - Add support for standard social logins (Google, Apple, Microsoft) to
@@ -395,7 +395,7 @@ reach across the organization.
   notifications); Teams bot/app; both integrate seamlessly with RCV
   backend and web.
 
-- Dependencies: Basic Web App, CosmosDB.
+- Dependencies: Basic Web App, Azure SQL Database.
 
 **Phase 4: Testing, Feedback & Launch (up to 1 week)**
 
@@ -455,16 +455,18 @@ public class RankedChoicePoll
     public RankedChoicePoll(IEnumerable<Option> options);
 
     /// <summary>
-    /// Calculate election results using instant-runoff voting algorithm.
+    /// Calculate election results using the provided RCV calculator algorithm.
+    /// Allows different calculation strategies to be plugged in (e.g., Instant Runoff, Borda Count).
     /// Note: When multiple candidates tie for last place, one is randomly selected for elimination.
     /// Use a seeded Random instance for deterministic results.
     /// </summary>
     /// <param name="ballots">Voter preferences as ranked lists of option IDs</param>
+    /// <param name="calculator">The RCV calculation algorithm to use</param>
     /// <param name="random">Optional Random instance for tie-breaking. If null, uses new Random()</param>
     /// <returns>Complete election results including winner/tie, round-by-round data, and statistics</returns>
-    /// <exception cref="ArgumentNullException">Thrown when ballots is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown when ballots or calculator is null</exception>
     /// <exception cref="ArgumentException">Thrown when ballots contain invalid option IDs or duplicate rankings</exception>
-    public RcvResult CalculateResult(IEnumerable<RankedBallot> ballots, Random? random = null);
+    public RcvResult CalculateResult(IEnumerable<RankedBallot> ballots, IRcvCalculator calculator, Random? random = null);
 }
 
 /// <summary>
@@ -564,6 +566,31 @@ public class RoundSummary
         IReadOnlyDictionary<Guid, int> voteCounts,
         Option? eliminatedOption = null);
 }
+
+/// <summary>
+/// Interface for RCV calculation algorithms.
+/// Allows different voting methods to be plugged into RankedChoicePoll.
+/// </summary>
+public interface IRcvCalculator
+{
+    /// <summary>
+    /// Calculate election results from ballots using a specific RCV algorithm.
+    /// </summary>
+    /// <param name="options">Available options to vote for</param>
+    /// <param name="ballots">Voter preferences</param>
+    /// <param name="random">Optional Random instance for algorithms that need tie-breaking</param>
+    /// <returns>Complete election results</returns>
+    RcvResult Calculate(IReadOnlyList<Option> options, IEnumerable<RankedBallot> ballots, Random? random = null);
+}
+
+/// <summary>
+/// Instant-runoff voting implementation.
+/// Eliminates lowest-ranked candidates until one achieves majority.
+/// </summary>
+public class InstantRunoffCalculator : IRcvCalculator
+{
+    public RcvResult Calculate(IReadOnlyList<Option> options, IEnumerable<RankedBallot> ballots, Random? random = null);
+}
 ```
 
 **Design Principles:**
@@ -580,7 +607,9 @@ public class RoundSummary
 
 6. **Constructor Validation** - All invalid states (null arguments, empty collections, logical inconsistencies) are caught at construction time.
 
-7. **JSON Serialization** - All models support `System.Text.Json` serialization for easy persistence and API responses.
+7. **Strategy Pattern** - Algorithm implementation is pluggable via `IRcvCalculator` interface, allowing different voting methods (instant-runoff, Borda count, etc.) without changing the core API.
+
+8. **JSON Serialization** - All models support `System.Text.Json` serialization for easy persistence and API responses.
 
 ### What It Never Does:
 
