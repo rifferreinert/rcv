@@ -48,6 +48,7 @@ public class RankedChoicePoll
     /// <param name="random">Optional Random instance for algorithms that need tie-breaking. If null, uses new Random()</param>
     /// <returns>Complete election results including winner/tie, round-by-round data, and statistics</returns>
     /// <exception cref="ArgumentNullException">Thrown when ballots or calculator is null</exception>
+    /// <exception cref="ArgumentException">Thrown when a ballot contains unknown option IDs</exception>
     public RcvResult CalculateResult(IEnumerable<RankedBallot> ballots, IRcvCalculator calculator, Random? random = null)
     {
         if (ballots == null)
@@ -56,6 +57,23 @@ public class RankedChoicePoll
         if (calculator == null)
             throw new ArgumentNullException(nameof(calculator));
 
-        return calculator.Calculate(_options, ballots, random);
+        // Validate that all ballot option IDs exist in poll options
+        var validOptionIds = _options.Select(o => o.Id).ToHashSet();
+        var ballotList = ballots.ToList();
+
+        foreach (var ballot in ballotList)
+        {
+            foreach (var optionId in ballot.RankedOptionIds)
+            {
+                if (!validOptionIds.Contains(optionId))
+                {
+                    throw new ArgumentException(
+                        $"Ballot contains unknown option ID: {optionId}. All option IDs in ballots must exist in the poll options.",
+                        nameof(ballots));
+                }
+            }
+        }
+
+        return calculator.Calculate(_options, ballotList, random);
     }
 }

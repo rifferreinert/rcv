@@ -28,44 +28,95 @@ Install-Package Rcv.Core
 
 ```csharp
 using Rcv.Core;
+using Rcv.Core.Calculators;
+using Rcv.Core.Domain;
 
 // Define your poll options
-var options = new[]
-{
-    new Option(Guid.NewGuid(), "Alice"),
-    new Option(Guid.NewGuid(), "Bob"),
-    new Option(Guid.NewGuid(), "Charlie")
-};
+var alice = new Option(Guid.NewGuid(), "Alice");
+var bob = new Option(Guid.NewGuid(), "Bob");
+var charlie = new Option(Guid.NewGuid(), "Charlie");
 
-// Create a new poll
-var poll = new RankedChoicePoll(options);
+var poll = new RankedChoicePoll(new[] { alice, bob, charlie });
 
-// Add ballots (voter preferences)
+// Create ballots (voter preferences)
 var ballots = new[]
 {
-    new RankedBallot { RankedOptionIds = new List<Guid> { alice.Id, bob.Id, charlie.Id } },
-    new RankedBallot { RankedOptionIds = new List<Guid> { bob.Id, alice.Id } },
-    new RankedBallot { RankedOptionIds = new List<Guid> { charlie.Id, alice.Id, bob.Id } }
+    new RankedBallot(new[] { alice.Id, bob.Id, charlie.Id }),
+    new RankedBallot(new[] { bob.Id, alice.Id }),
+    new RankedBallot(new[] { charlie.Id, alice.Id, bob.Id })
 };
 
-poll.AddBallots(ballots);
+// Calculate results using instant-runoff voting
+var calculator = new InstantRunoffCalculator();
+var result = poll.CalculateResult(ballots, calculator);
 
-// Calculate results
-var result = poll.CalculateResult();
-
-Console.WriteLine($"Winner: {result.Winner.Label}");
+Console.WriteLine($"Winner: {result.Winner?.Label ?? "No winner (tie)"}");
 Console.WriteLine($"Total rounds: {result.Rounds.Count}");
+```
+
+## Analyzing Results
+
+The `RcvResult` object provides comprehensive round-by-round statistics:
+
+```csharp
+var result = poll.CalculateResult(ballots, calculator);
+
+// Check for winner or tie
+if (result.IsTie)
+{
+    Console.WriteLine("Election resulted in a tie:");
+    foreach (var option in result.TiedOptions)
+    {
+        Console.WriteLine($"  - {option.Label}");
+    }
+}
+else
+{
+    Console.WriteLine($"Winner: {result.Winner!.Label}");
+}
+
+// Analyze round-by-round elimination
+foreach (var round in result.Rounds)
+{
+    Console.WriteLine($"\nRound {round.RoundNumber}:");
+
+    // Show vote distribution for this round
+    foreach (var kvp in round.VoteCounts)
+    {
+        var option = options.First(o => o.Id == kvp.Key);
+        Console.WriteLine($"  {option.Label}: {kvp.Value} votes");
+    }
+
+    // Show who was eliminated (if anyone)
+    if (round.EliminatedOption != null)
+    {
+        Console.WriteLine($"  Eliminated: {round.EliminatedOption.Label}");
+    }
+}
+
+// View final vote totals
+Console.WriteLine("\nFinal vote totals:");
+foreach (var kvp in result.FinalVoteTotals)
+{
+    var option = options.First(o => o.Id == kvp.Key);
+    Console.WriteLine($"  {option.Label}: {kvp.Value} votes");
+}
 ```
 
 ## Core API
 
-### Classes
+### Main Components
 
-- **`RankedChoicePoll`**: Main class for managing polls and calculating results
-- **`Option`**: Immutable record representing a poll option
-- **`RankedBallot`**: Represents a voter's ranked preferences
-- **`RcvResult`**: Complete election results with statistics
-- **`RoundSummary`**: Round-by-round elimination data
+- **`RankedChoicePoll`**: Facade for conducting elections with pluggable calculator algorithms
+- **`IRcvCalculator`**: Interface for implementing different RCV algorithms (e.g., instant-runoff, Borda count)
+- **`InstantRunoffCalculator`**: Instant-runoff voting (IRV) implementation with random tie-breaking
+
+### Domain Models (Immutable)
+
+- **`Option`**: Record representing a poll option/candidate
+- **`RankedBallot`**: Voter's ranked preferences (validates no duplicate rankings)
+- **`RcvResult`**: Complete election results with winner/tie status, rounds, and final vote totals
+- **`RoundSummary`**: Single round's vote distribution and eliminated candidate
 
 ## Development
 

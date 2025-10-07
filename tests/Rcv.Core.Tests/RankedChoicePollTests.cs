@@ -100,4 +100,25 @@ public class RankedChoicePollTests
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => poll.CalculateResult(ballots, null!));
     }
+
+    [Fact]
+    public void CalculateResult_ThrowsOnBallotWithUnknownOptionId()
+    {
+        // Arrange
+        var alice = new Option(Guid.NewGuid(), "Alice");
+        var bob = new Option(Guid.NewGuid(), "Bob");
+        var poll = new RankedChoicePoll(new[] { alice, bob });
+
+        var unknownOptionId = Guid.NewGuid(); // Not in poll options
+        var ballots = new[]
+        {
+            new RankedBallot(new[] { alice.Id, unknownOptionId }) // Contains unknown ID
+        };
+
+        var calculator = new InstantRunoffCalculator();
+
+        // Act & Assert
+        var ex = Assert.Throws<ArgumentException>(() => poll.CalculateResult(ballots, calculator));
+        Assert.Contains("unknown", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

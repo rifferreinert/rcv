@@ -102,3 +102,4 @@ Triggers: pushes to `main`/`develop`, PRs to `main`
 - NuGet package preparation
 
 Next phases will add web app and platform integrations.
+- Write short informative commit messages

@@ -43,10 +43,10 @@
 - [x] 4.0 Produce comprehensive statistics and round summaries
   - [x] 4.1 Populate `RoundSummary` during each elimination round
   - [x] 4.2 Aggregate per-option statistics (vote counts per round, final totals)
-  - [ ] 4.3 Document statistics fields in README with usage examples
+  - [x] 4.3 Document statistics fields in README with usage examples
 
 - [x] 5.0 Write tests, documentation, and prepare the package for NuGet publishing
-  - [ ] 5.1 Achieve ≥90% code coverage with xUnit and edge-case fixtures (need to verify coverage)
+  - [x] 5.1 Achieve ≥90% code coverage with xUnit and edge-case fixtures (achieved 95.39% line coverage, 98.14% branch coverage)
   - [x] 5.2 Generate XML documentation file and include in `.csproj` for NuGet
   - [x] 5.3 Add README sections: installation, basic sample, contribution guidelines
   - [x] 5.4 Configure `dotnet pack` target with versioning and license metadata
@@ -56,10 +56,18 @@
 
 - **Strategy Pattern**: Implemented `IRcvCalculator` interface to allow pluggable voting algorithms. `InstantRunoffCalculator` is the IRV implementation.
 - **Random Tie-Breaking**: When multiple candidates tie for last place, one is randomly eliminated. Random instance passed as parameter for deterministic testing.
-- **Test Coverage**: 28 tests passing, covering domain models, API validation, and algorithm scenarios (immediate majority, elimination rounds, ties, partial ballots, edge cases).
+- **Test Coverage**: 29 tests passing, covering domain models, API validation, and algorithm scenarios (immediate majority, elimination rounds, ties, partial ballots, edge cases, unknown option ID validation).
+- **Code Coverage**: Achieved 95.39% line coverage and 98.14% branch coverage (exceeds ≥90% requirement).
+- **Validation**: All ballots validated to ensure option IDs exist in poll options (fail-fast principle).
+- **Documentation**: README includes Quick Start, statistics analysis examples, and comprehensive API reference.
 
-## Remaining Tasks
+## Completed Tasks
 
-- [ ] Verify ≥90% code coverage (run coverage analysis)
-- [ ] Document statistics usage in README with examples
-- [ ] Add validation for unknown option IDs in ballots (currently not validated)
+All tasks in the PRD v1 NuGet module are complete:
+- ✅ Domain models with immutability and validation
+- ✅ Instant-runoff voting calculator with Strategy pattern
+- ✅ Comprehensive test coverage (29 tests, 95%+ coverage)
+- ✅ Round-by-round statistics and tracking
+- ✅ README documentation with examples
+- ✅ NuGet package configuration
+- ✅ GitHub Actions CI/CD pipeline
