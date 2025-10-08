@@ -77,6 +77,12 @@ When implementing features:
 2. Write minimum code to pass tests
 3. Refactor for readability
 
+### Git Practices
+- Use feature branches for new work
+- Write clear, concise commit messages
+- Open PRs for code review before merging to `main`
+- Commit often with small, focused changes
+
 **Important**: After writing tests, wait for user confirmation before implementing. The user is learning C# (coming from Python background), so explain concepts as you go and summarize what was done and why after each feature.
 
 ### Visual Studio Tasks
@@ -92,14 +98,3 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 5. Upload artifacts
 
 Triggers: pushes to `main`/`develop`, PRs to `main`
-
-## Current Development Phase
-
-**Phase 1: RCV NuGet Module** (see tasks/tasks-prd-v1-nuget.md)
-- Focus on core algorithm implementation
-- Comprehensive edge case handling and validation
-- Full test coverage and documentation
-- NuGet package preparation
-
-Next phases will add web app and platform integrations.
-- Write short informative commit messages
