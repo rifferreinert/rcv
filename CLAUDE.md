@@ -98,3 +98,4 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 5. Upload artifacts
 
 Triggers: pushes to `main`/`develop`, PRs to `main`
+- When working through a task list, go in order and step by step when at all possible
