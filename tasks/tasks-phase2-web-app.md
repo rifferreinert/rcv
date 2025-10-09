@@ -8,37 +8,37 @@
 - **Timeline**: 7 days
 - **Sequence**: Backend (days 1-4) → Frontend (days 5-6) → Testing & Deployment (day 7+)
 
-## 1.0 Project Setup and Infrastructure
+## 1.0 Project Setup and Infrastructure ✅
 
-- [ ] 1.1 Create ASP.NET Core Web API project (`Rcv.Web.Api`)
-  - [ ] 1.1.1 Run `dotnet new webapi` with .NET 9.0 target
-  - [ ] 1.1.2 Add reference to `Rcv.Core` NuGet package
-  - [ ] 1.1.3 Configure `appsettings.json` with connection strings and auth providers
-  - [ ] 1.1.4 Set up Swagger/OpenAPI for API documentation
-- [ ] 1.2 Create React frontend project (`rcv-web-ui`)
-  - [ ] 1.2.1 Initialize with `npm create vite@latest` (React + TypeScript template)
-  - [ ] 1.2.2 Install dependencies (React Router, Axios, Tailwind CSS, @dnd-kit, Recharts)
-  - [ ] 1.2.3 Configure Tailwind CSS with custom theme (responsive breakpoints)
-  - [ ] 1.2.4 Set up ESLint and Prettier
-- [ ] 1.3 Update solution file to include new projects
-- [ ] 1.4 Create test project (`Rcv.Web.Api.Tests`) with xUnit, Moq, FluentAssertions
-- [ ] 1.5 Configure CORS on backend to allow frontend origin (development and production URLs)
+- [x] 1.1 Create ASP.NET Core Web API project (`Rcv.Web.Api`)
+  - [x] 1.1.1 Run `dotnet new webapi` with .NET 9.0 target
+  - [x] 1.1.2 Add reference to `Rcv.Core` NuGet package
+  - [x] 1.1.3 Configure `appsettings.json` with connection strings and auth providers
+  - [x] 1.1.4 Set up Swagger/OpenAPI for API documentation
+- [x] 1.2 Create React frontend project (`rcv-web-ui`)
+  - [x] 1.2.1 Initialize with `npm create vite@latest` (React + TypeScript template)
+  - [x] 1.2.2 Install dependencies (React Router, Axios, Tailwind CSS, @dnd-kit, Recharts)
+  - [x] 1.2.3 Configure Tailwind CSS with custom theme (responsive breakpoints)
+  - [x] 1.2.4 Set up ESLint and Prettier
+- [x] 1.3 Update solution file to include new projects
+- [x] 1.4 Create test project (`Rcv.Web.Api.Tests`) with xUnit, Moq, FluentAssertions
+- [x] 1.5 Configure CORS on backend to allow frontend origin (development and production URLs)
 
-## 2.0 Database Design and Entity Framework Setup
+## 2.0 Database Design and Entity Framework Setup ✅
 
-- [ ] 2.1 Install EF Core packages (SqlServer, Tools, Design)
-- [ ] 2.2 Create entity classes with data annotations
-  - [ ] 2.2.1 `User` entity with provider mapping
-  - [ ] 2.2.2 `Poll` entity with creator relationship
-  - [ ] 2.2.3 `PollOption` entity with poll relationship
-  - [ ] 2.2.4 `Vote` entity with `List<Guid>` property for ranked choices (mapped to JSON column)
-- [ ] 2.3 Create `RcvDbContext` with DbSets and relationships
-  - [ ] 2.3.1 Configure entity relationships (one-to-many, unique constraints)
-  - [ ] 2.3.2 Add indexes for common queries
-  - [ ] 2.3.3 Configure JSON column type for `Vote.RankedChoices` using `HasColumnType("json")`
-- [ ] 2.4 Generate initial migration (`dotnet ef migrations add InitialCreate`)
-- [ ] 2.5 Apply migration to Azure SQL Database (development instance)
-- [ ] 2.6 Seed sample data for development (optional: use `DbContext.OnModelCreating`)
+- [x] 2.1 Install EF Core packages (SqlServer, Tools, Design)
+- [x] 2.2 Create entity classes with data annotations
+  - [x] 2.2.1 `User` entity with provider mapping
+  - [x] 2.2.2 `Poll` entity with creator relationship
+  - [x] 2.2.3 `PollOption` entity with poll relationship
+  - [x] 2.2.4 `Vote` entity with `List<Guid>` property for ranked choices (mapped to JSON column)
+- [x] 2.3 Create `RcvDbContext` with DbSets and relationships
+  - [x] 2.3.1 Configure entity relationships (one-to-many, unique constraints)
+  - [x] 2.3.2 Add indexes for common queries
+  - [x] 2.3.3 Configure JSON column type for `Vote.RankedChoices` using `HasColumnType("json")`
+- [x] 2.4 Generate initial migration (`dotnet ef migrations add InitialCreate`)
+- [x] 2.5 Apply migration to Azure SQL Database (skipped - no DB instance yet)
+- [x] 2.6 Seed sample data for development (skipped for MVP)
 
 ## 3.0 Authentication & Authorization
 
