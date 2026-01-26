@@ -1,0 +1,964 @@
+openapi: 3.0.3
+info:
+  title: Ranked Choice Voting API
+  description: REST API for creating polls, casting votes, and viewing ranked choice voting results
+  version: 1.0.0
+  contact:
+    name: RCV Platform
+    url: https://github.com/rifferreinert/rcv
+
+servers:
+  - url: https://api.rcv.example.com
+    description: Production server
+  - url: https://localhost:5001
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: OAuth authentication and user management
+  - name: Polls
+    description: Poll creation and management
+  - name: Votes
+    description: Casting and retrieving votes
+  - name: Results
+    description: Viewing poll results and statistics
+
+paths:
+  # Authentication Endpoints
+  /api/auth/login:
+    get:
+      tags: [Authentication]
+      summary: Initiate OAuth login flow
+      description: Redirects user to OAuth provider (Slack, Teams, Google, Apple, Microsoft)
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [slack, teams, google, apple, microsoft]
+          description: OAuth provider to use for authentication
+      responses:
+        '302':
+          description: Redirect to OAuth provider
+        '400':
+          description: Invalid provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/auth/callback:
+    get:
+      tags: [Authentication]
+      summary: OAuth callback endpoint
+      description: Handles OAuth provider callback after user authorizes
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from OAuth provider
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          description: CSRF protection state parameter
+      responses:
+        '302':
+          description: Redirect to application with session cookie
+        '400':
+          description: Invalid authorization code or state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Sign out current user
+      description: Terminates user session and clears authentication cookies
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Successfully signed out
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/users/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user profile
+      description: Returns profile information for authenticated user
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  # Poll Endpoints
+  /api/polls:
+    post:
+      tags: [Polls]
+      summary: Create a new poll
+      description: Creates a new ranked choice voting poll
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePollRequest'
+      responses:
+        '201':
+          description: Poll created successfully
+          headers:
+            Location:
+              description: URL of the created poll
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollResponse'
+        '400':
+          description: Invalid request (validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    get:
+      tags: [Polls]
+      summary: List polls
+      description: Returns list of polls (filterable by creator, status)
+      parameters:
+        - name: creatorId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter polls by creator user ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Active, Closed, Deleted]
+          description: Filter polls by status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of polls per page
+      responses:
+        '200':
+          description: List of polls
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/polls/{pollId}:
+    get:
+      tags: [Polls]
+      summary: Get poll details
+      description: Returns detailed information about a poll
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Poll ID
+      responses:
+        '200':
+          description: Poll details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollResponse'
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    patch:
+      tags: [Polls]
+      summary: Update poll settings
+      description: Updates poll settings (only creator can update)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Poll ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePollSettingsRequest'
+      responses:
+        '200':
+          description: Poll updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: Not authorized (only creator can update)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    delete:
+      tags: [Polls]
+      summary: Delete a poll
+      description: Permanently deletes a poll and all its votes (only creator can delete)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Poll ID
+      responses:
+        '204':
+          description: Poll deleted successfully
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: Not authorized (only creator can delete)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/polls/{pollId}/close:
+    post:
+      tags: [Polls]
+      summary: Close a poll early
+      description: Closes a poll before its scheduled end time (only creator can close)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Poll ID
+      responses:
+        '200':
+          description: Poll closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollResponse'
+        '400':
+          description: Poll is already closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: Not authorized (only creator can close)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  # Vote Endpoints
+  /api/polls/{pollId}/votes:
+    post:
+      tags: [Votes]
+      summary: Cast a vote in a poll
+      description: Submits a ranked ballot for a poll (one vote per user per poll)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Poll ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CastVoteRequest'
+      responses:
+        '201':
+          description: Vote cast successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoteResponse'
+        '400':
+          description: Invalid vote (validation errors, unknown option IDs, duplicate rankings)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: User has already voted in this poll
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '410':
+          description: Poll has closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    get:
+      tags: [Votes]
+      summary: Get votes for a poll
+      description: Returns all votes for a poll (only creator can see votes if poll is public)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Poll ID
+      responses:
+        '200':
+          description: List of votes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoteListResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: Not authorized (only creator can view votes if poll is public)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/polls/{pollId}/votes/me:
+    get:
+      tags: [Votes]
+      summary: Get current user's vote
+      description: Returns the authenticated user's vote for this poll
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Poll ID
+      responses:
+        '200':
+          description: User's vote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoteResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Poll not found or user has not voted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  # Results Endpoints
+  /api/polls/{pollId}/results:
+    get:
+      tags: [Results]
+      summary: Get poll results
+      description: Returns RCV calculation results with round-by-round elimination data
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Poll ID
+      responses:
+        '200':
+          description: Poll results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultsResponse'
+        '403':
+          description: Results not available (poll is active and live results disabled)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Poll not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  # Dashboard Endpoints
+  /api/dashboard/created:
+    get:
+      tags: [Polls]
+      summary: Get polls created by current user
+      description: Returns list of polls created by the authenticated user
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of created polls
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollListResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/dashboard/voted:
+    get:
+      tags: [Polls]
+      summary: Get polls user has voted in
+      description: Returns list of polls the authenticated user has participated in
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of polls voted in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollListResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: .AspNetCore.Cookies
+      description: ASP.NET Core authentication cookie (set via OAuth flow)
+
+  schemas:
+    # Request Schemas
+    CreatePollRequest:
+      type: object
+      required: [title, options]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Poll title
+          example: "Best Programming Language"
+        description:
+          type: string
+          maxLength: 1000
+          description: Optional poll description
+          example: "Vote for your favorite programming language"
+        options:
+          type: array
+          minItems: 2
+          maxItems: 20
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+          description: List of poll options
+          example: ["Python", "JavaScript", "C#", "Go"]
+        closesAt:
+          type: string
+          format: date-time
+          description: When poll closes (UTC). NULL = no deadline
+          example: "2025-11-01T00:00:00Z"
+        isResultsPublic:
+          type: boolean
+          default: true
+          description: True = results visible during voting (live results)
+        isVotingPublic:
+          type: boolean
+          default: false
+          description: True = votes are public (creator can see who voted for what)
+
+    CastVoteRequest:
+      type: object
+      required: [rankedOptionIds]
+      properties:
+        rankedOptionIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+          description: Ordered list of option IDs from most to least preferred
+          example: ["123e4567-e89b-12d3-a456-426614174000", "223e4567-e89b-12d3-a456-426614174001"]
+
+    UpdatePollSettingsRequest:
+      type: object
+      properties:
+        isResultsPublic:
+          type: boolean
+          description: True = results visible during voting
+        isVotingPublic:
+          type: boolean
+          description: True = votes are public
+
+    # Response Schemas
+    UserResponse:
+      type: object
+      required: [id, displayName, provider]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User ID
+        displayName:
+          type: string
+          description: User's display name from OAuth provider
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          nullable: true
+          description: User's email address (if provider shares)
+          example: "john.doe@example.com"
+        provider:
+          type: string
+          description: OAuth provider name
+          enum: [Slack, Google, Microsoft, Apple, Teams]
+          example: "Google"
+
+    PollResponse:
+      type: object
+      required: [id, title, creator, createdAt, status, isResultsPublic, isVotingPublic, options, totalVotes]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Poll ID
+        title:
+          type: string
+          description: Poll title
+          example: "Best Programming Language"
+        description:
+          type: string
+          nullable: true
+          description: Poll description
+          example: "Vote for your favorite programming language"
+        creator:
+          $ref: '#/components/schemas/UserResponse'
+        createdAt:
+          type: string
+          format: date-time
+          description: When poll was created (UTC)
+          example: "2025-10-26T12:00:00Z"
+        closesAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When poll closes (UTC). NULL = no deadline
+          example: "2025-11-01T00:00:00Z"
+        closedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When poll was actually closed (UTC)
+          example: "2025-10-31T15:30:00Z"
+        status:
+          type: string
+          enum: [Active, Closed, Deleted]
+          description: Poll status
+          example: "Active"
+        isResultsPublic:
+          type: boolean
+          description: True = results visible during voting
+        isVotingPublic:
+          type: boolean
+          description: True = votes are public
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollOptionResponse'
+          description: List of poll options
+        totalVotes:
+          type: integer
+          minimum: 0
+          description: Total number of votes cast
+          example: 42
+        currentUserHasVoted:
+          type: boolean
+          nullable: true
+          description: True if authenticated user has voted (null if not authenticated)
+
+    PollOptionResponse:
+      type: object
+      required: [id, text, displayOrder]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Option ID
+        text:
+          type: string
+          description: Option text
+          example: "Python"
+        displayOrder:
+          type: integer
+          description: Display order (1-indexed)
+          example: 1
+
+    PollListResponse:
+      type: object
+      required: [polls, totalCount, page, pageSize]
+      properties:
+        polls:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollResponse'
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Total number of polls matching filter
+          example: 150
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number
+          example: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          description: Number of polls per page
+          example: 20
+        totalPages:
+          type: integer
+          minimum: 1
+          description: Total number of pages
+          example: 8
+
+    VoteResponse:
+      type: object
+      required: [id, pollId, castAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Vote ID
+        pollId:
+          type: string
+          format: uuid
+          description: Poll ID
+        castAt:
+          type: string
+          format: date-time
+          description: When vote was cast (UTC)
+          example: "2025-10-26T14:30:00Z"
+        rankedChoices:
+          type: array
+          items:
+            type: string
+            format: uuid
+          nullable: true
+          description: Ranked option IDs (only populated if poll is public and requester is creator)
+
+    VoteListResponse:
+      type: object
+      required: [votes, totalCount]
+      properties:
+        votes:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoteResponse'
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Total number of votes
+          example: 42
+
+    ResultsResponse:
+      type: object
+      required: [pollId, pollTitle, totalVotes, isTie, rounds, finalVoteTotals, participation]
+      properties:
+        pollId:
+          type: string
+          format: uuid
+          description: Poll ID
+        pollTitle:
+          type: string
+          description: Poll title
+          example: "Best Programming Language"
+        totalVotes:
+          type: integer
+          minimum: 0
+          description: Total number of votes cast
+          example: 42
+        winner:
+          $ref: '#/components/schemas/PollOptionResponse'
+          nullable: true
+          description: Winning option (null if tie)
+        isTie:
+          type: boolean
+          description: True if election ended in a tie
+        tiedOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollOptionResponse'
+          description: Options that tied for the win (empty if isTie is false)
+        rounds:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoundSummaryResponse'
+          description: Round-by-round elimination data
+        finalVoteTotals:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Final vote counts by option ID
+          example: {"123e4567-e89b-12d3-a456-426614174000": 25, "223e4567-e89b-12d3-a456-426614174001": 17}
+        participation:
+          $ref: '#/components/schemas/ParticipationStats'
+
+    RoundSummaryResponse:
+      type: object
+      required: [roundNumber, voteCounts]
+      properties:
+        roundNumber:
+          type: integer
+          minimum: 1
+          description: Round number (1-indexed)
+          example: 1
+        voteCounts:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Vote counts by option ID in this round
+          example: {"123e4567-e89b-12d3-a456-426614174000": 25}
+        eliminatedOption:
+          $ref: '#/components/schemas/PollOptionResponse'
+          nullable: true
+          description: Option eliminated in this round (null for final round)
+
+    ParticipationStats:
+      type: object
+      required: [totalVotesCast, participationRate]
+      properties:
+        totalVotesCast:
+          type: integer
+          minimum: 0
+          description: Total number of votes cast
+          example: 42
+        participationRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: Participation rate as percentage
+          example: 84.0
+
+    ProblemDetails:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference identifying the problem type
+          example: "https://api.rcv.example.com/errors/validation-error"
+        title:
+          type: string
+          description: Short, human-readable summary
+          example: "One or more validation errors occurred"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        detail:
+          type: string
+          description: Human-readable explanation
+          example: "The 'Title' field is required."
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying the specific occurrence
+          example: "/api/polls"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Validation error details (field-level errors)
+          example:
+            title: ["The Title field is required."]
+            options: ["A poll must have at least 2 options."]

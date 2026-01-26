@@ -99,3 +99,10 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 
 Triggers: pushes to `main`/`develop`, PRs to `main`
 - When working through a task list, go in order and step by step when at all possible
+
+## Active Technologies
+- C# 14 / .NET 9.0 (001-web-app)
+- Azure SQL Database with Entity Framework Core 9.0 (001-web-app)
+
+## Recent Changes
+- 001-web-app: Updated to C# 14 / .NET 9.0 (latest stable)

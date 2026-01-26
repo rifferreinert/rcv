@@ -1,50 +1,50 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# RCV Platform Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Library-First Architecture
+Every feature starts with the core library (Rcv.Core NuGet package). The library must be:
+- Self-contained and stateless (no DB, UI, or user management logic)
+- Independently testable with comprehensive test coverage (≥90%)
+- Well-documented with XML comments for all public APIs
+- Reusable across multiple integration types (Web, Slack, Teams, other .NET apps)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Test-First Development
+TDD is mandatory for all code:
+- Write tests first, get user approval, then implement
+- Red-Green-Refactor cycle strictly enforced
+- No implementation without failing tests first
+- All edge cases must have corresponding tests
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Clear Separation of Concerns
+Strict boundaries between layers:
+- **Core Library**: Pure voting logic, calculations, and statistics only
+- **Application Layer**: Poll management, user authentication, integrations
+- **Data Layer**: Persistence via Entity Framework Core and Azure SQL Database
+- No cross-layer pollution (e.g., no database logic in the core library)
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Simplicity & YAGNI
+Start simple and avoid premature complexity:
+- Build only what's needed for current requirements
+- Prefer clear, readable code over clever optimizations
+- Add complexity only when justified by real user needs
+- Follow SOLID principles for maintainability
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
-
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. API-First Design
+All functionality exposed through well-defined, immutable APIs:
+- Use records and readonly collections for data models
+- Validate all inputs at construction time
+- Throw descriptive exceptions for invalid states
+- Support JSON serialization for all models (`System.Text.Json`)
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development practices. All PRs and code reviews must verify compliance with these principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Complexity must be justified by real requirements from tasks/prd-v1.md. When in doubt, prefer simplicity.
+
+For runtime development guidance, refer to CLAUDE.md.
+
+Amendments must bump the version and dates below.
+
+**Version**: 1.0.0 | **Ratified**: 2025-10-26 | **Last Amended**: 2025-10-26
