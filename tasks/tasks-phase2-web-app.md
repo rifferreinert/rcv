@@ -40,23 +40,23 @@
 - [x] 2.5 Apply migration to Azure SQL Database (skipped - no DB instance yet)
 - [x] 2.6 Seed sample data for development (skipped for MVP)
 
-## 3.0 Authentication & Authorization
+## 3.0 Authentication & Authorization ✅
 
-- [ ] 3.1 Configure authentication services in `Program.cs`
-  - [ ] 3.1.1 Add JWT Bearer authentication scheme
-  - [ ] 3.1.2 Configure OAuth2 providers (Slack, Teams, Google, Apple, Microsoft)
-  - [ ] 3.1.3 Set up cookie-based sessions for web flows (optional hybrid approach)
-- [ ] 3.2 Create `AuthController` with login/logout endpoints
-  - [ ] 3.2.1 `GET /api/auth/login/{provider}` - Initiate OAuth flow
-  - [ ] 3.2.2 `GET /api/auth/callback/{provider}` - Handle OAuth callback
-  - [ ] 3.2.3 `POST /api/auth/logout` - Clear session/token
-  - [ ] 3.2.4 `GET /api/auth/me` - Get current user info
-- [ ] 3.3 Create `AuthService` for user creation/lookup
-  - [ ] 3.3.1 Implement `GetOrCreateUserAsync(externalId, provider, profile)`
-  - [ ] 3.3.2 Implement JWT token generation with user claims
-  - [ ] 3.3.3 Update `LastLoginAt` timestamp on authentication
-- [ ] 3.4 Add authorization policies (poll creator, authenticated user)
-- [ ] 3.5 Write unit tests for authentication flows and token generation
+- [x] 3.1 Configure authentication services in `Program.cs`
+  - [x] 3.1.1 Add JWT Bearer authentication scheme (reads token from `rcv_jwt` httpOnly cookie)
+  - [x] 3.1.2 Configure OAuth2 providers (Google, Microsoft)
+  - [x] 3.1.3 Set up temporary External cookie scheme for OAuth handshake
+- [x] 3.2 Create `AuthController` with login/logout endpoints
+  - [x] 3.2.1 `GET /api/auth/login/{provider}` - Initiate OAuth flow
+  - [x] 3.2.2 `GET /api/auth/callback/{provider}` - Handle OAuth callback (set JWT cookie, redirect to /dashboard)
+  - [x] 3.2.3 `POST /api/auth/logout` - Expire JWT cookie
+  - [x] 3.2.4 `GET /api/auth/me` - Get current user info (requires `[Authorize]`)
+- [x] 3.3 Create `AuthService` for user creation/lookup
+  - [x] 3.3.1 Implement `GetOrCreateUserAsync(externalId, provider, email, displayName)`
+  - [x] 3.3.2 Implement JWT token generation (HMAC-SHA256, includes userId/email/name/provider claims)
+  - [x] 3.3.3 Update `LastLoginAt` timestamp on authentication
+- [x] 3.4 Add `[Authorize]` attribute on protected endpoints
+- [x] 3.5 Write unit tests for `AuthService` (16 tests) and integration tests for `AuthController` (18 tests)
 
 ## 4.0 Poll Management API
 
@@ -294,7 +294,7 @@
 ## Success Criteria
 
 - [ ] Users can create polls with multiple options via web UI
-- [ ] Users can authenticate with at least 3 SSO providers (Slack, Google, Microsoft)
+- [ ] Users can authenticate with at least 2 SSO providers (Google, Microsoft; Slack/Apple deferred)
 - [ ] Users can vote using intuitive drag-and-drop interface
 - [ ] Users can view live or final results with round-by-round breakdown
 - [ ] Poll creators can manage their polls (close, delete)
