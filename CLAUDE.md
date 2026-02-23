@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a .NET ranked choice voting (RCV) platform consisting of:
 - **Rcv.Core**: A NuGet library implementing instant-runoff voting (IRV) algorithm with round-by-round elimination and statistics
-- **Future components**: Web app, Slack/Teams integrations (see tasks/prd-v1.md for full roadmap)
+- **Rcv.Web.Api**: ASP.NET Core 9 Web API — poll management, voting, results, and OAuth2 authentication
+- **rcv-web-ui**: React 18 + TypeScript SPA (Vite) — frontend for creating polls, voting, and viewing results
+- **Future**: Slack/Teams integrations (see tasks/prd-v1.md for full roadmap)
 
-The core library is designed to be reusable, stateless, and completely independent of UI, storage, or user management concerns.
+The core library is stateless and independent of UI, storage, or user management concerns. The web API delegates all vote calculation to `Rcv.Core`.
 
 ## Development Commands
 
@@ -16,13 +18,39 @@ The core library is designed to be reusable, stateless, and completely independe
 ```bash
 dotnet build                                    # Build entire solution
 dotnet build -c Release                         # Release build
+cd src/rcv-web-ui && npm install                # Install frontend dependencies
+cd src/rcv-web-ui && npm run build              # Build frontend for production
 ```
+
+### Running Locally
+
+**Backend API** (requires OAuth credentials in `appsettings.json` or user-secrets):
+```bash
+dotnet run --project src/Rcv.Web.Api            # http://localhost:5041
+dotnet run --project src/Rcv.Web.Api --launch-profile https  # https://localhost:7188
+```
+Swagger UI is available at `http://localhost:5041` in Development mode.
+
+> **Prerequisites**: The API requires `Authentication:Google:ClientId/ClientSecret` and
+> `Authentication:Microsoft:ClientId/ClientSecret` to start. Set them via
+> `dotnet user-secrets` or environment variables. The database connection string
+> (`ConnectionStrings:DefaultConnection`) must also point to a valid SQL Server instance
+> (or be overridden for local dev). The JWT `SecretKey` must be set.
+
+**Frontend** (in a separate terminal):
+```bash
+cd src/rcv-web-ui
+npm install          # first time only
+npm run dev          # http://localhost:5173
+```
+The frontend expects the API at `http://localhost:5041` (CORS is pre-configured for port 5173).
 
 ### Testing
 ```bash
-dotnet test                                     # Run all tests
+dotnet test                                     # Run all tests (Core + Web API)
 dotnet test --verbosity detailed                # Verbose test output
-dotnet test --filter "FullyQualifiedName~RcvCalculatorEdgeCaseTests"  # Run specific test class
+dotnet test --filter "FullyQualifiedName~PollServiceTests"      # Run specific test class
+dotnet test --filter "FullyQualifiedName~RcvCalculatorEdgeCaseTests"  # Core edge cases
 ```
 
 ### NuGet Package
@@ -35,8 +63,19 @@ dotnet pack -c Release --output ./artifacts     # Output to specific directory
 
 ### Solution Structure
 ```
-src/Rcv.Core/          # Core RCV library (NuGet package)
-tests/Rcv.Core.Tests/  # xUnit tests
+src/
+├── Rcv.Core/              # Core RCV library (NuGet package)
+├── Rcv.Web.Api/           # ASP.NET Core 9 Web API
+│   ├── Controllers/       # AuthController, PollsController (more coming)
+│   ├── Services/          # AuthService, PollService (interfaces + implementations)
+│   ├── Validators/        # FluentValidation validators for request DTOs
+│   ├── Data/              # EF Core DbContext + entity classes
+│   └── Models/            # Request/Response DTOs
+└── rcv-web-ui/            # React 18 + TypeScript SPA (Vite)
+
+tests/
+├── Rcv.Core.Tests/        # xUnit tests for core library
+└── Rcv.Web.Api.Tests/     # xUnit tests for web API (unit + integration)
 ```
 
 ### Core Library Design
@@ -57,10 +96,23 @@ tests/Rcv.Core.Tests/  # xUnit tests
 - Throw descriptive exceptions for invalid input (unknown option IDs, duplicate rankings)
 - Comprehensive XML documentation for IntelliSense
 
+### Web API Design (Rcv.Web.Api)
+
+**Architecture**: Clean Architecture — Controllers → Services → EF Core Data Layer
+
+**Authentication**: OAuth2 (Google, Microsoft) → JWT stored as httpOnly cookie (`rcv_jwt`).
+
+**Key patterns**:
+- Services throw typed exceptions (`KeyNotFoundException`, `UnauthorizedAccessException`, `InvalidOperationException`); controllers map them to HTTP status codes (404, 403, 409)
+- Soft delete only — polls are never hard-deleted (`Status = "Deleted"`)
+- All voting calculations delegated to `Rcv.Core` (never re-implemented in the API)
+- FluentValidation for all request DTOs; validated automatically before controller actions run
+- Integration tests use `WebApplicationFactory<Program>` with in-memory EF Core (no SQL Server required)
+
 ### Test Organization
-- `RankedChoicePollTests.cs`: Public API and core logic tests
-- `RcvCalculatorEdgeCaseTests.cs`: Edge cases and regression tests
-- Target: ≥90% code coverage
+- `Rcv.Core.Tests/`: `RankedChoicePollTests.cs` (public API), `RcvCalculatorEdgeCaseTests.cs` (edge cases). Target: ≥90% coverage
+- `Rcv.Web.Api.Tests/Services/`: Unit tests using in-memory EF Core (no HTTP)
+- `Rcv.Web.Api.Tests/Controllers/`: Integration tests using `WebApplicationFactory` + in-memory EF Core
 
 ## Code Style & Practices
 
