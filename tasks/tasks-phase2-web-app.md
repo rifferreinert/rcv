@@ -58,29 +58,29 @@
 - [x] 3.4 Add `[Authorize]` attribute on protected endpoints
 - [x] 3.5 Write unit tests for `AuthService` (16 tests) and integration tests for `AuthController` (18 tests)
 
-## 4.0 Poll Management API
+## 4.0 Poll Management API ✅
 
-- [ ] 4.1 Create `PollService` with business logic
-  - [ ] 4.1.1 `CreatePollAsync(userId, title, description, options, settings)` - Returns Poll entity
-  - [ ] 4.1.2 `GetPollByIdAsync(pollId)` - Returns Poll with options
-  - [ ] 4.1.3 `GetPollsByCreatorAsync(userId)` - Returns creator's polls
-  - [ ] 4.1.4 `GetActivePollsAsync()` - Returns all active polls (for discovery)
-  - [ ] 4.1.5 `ClosePollAsync(pollId, userId)` - Validates creator, sets `ClosedAt`
-  - [ ] 4.1.6 `DeletePollAsync(pollId, userId)` - Soft delete (sets Status = 'Deleted')
-  - [ ] 4.1.7 `UpdatePollAsync(pollId, userId, updates)` - Allow editing before votes cast (optional)
-- [ ] 4.2 Create DTOs for poll operations
-  - [ ] 4.2.1 `CreatePollRequest` (title, description, options[], closesAt?, isResultsPublic, isVotingPublic)
-  - [ ] 4.2.2 `PollResponse` (id, title, description, creator, options, stats, status, settings)
-  - [ ] 4.2.3 `PollListResponse` (pagination metadata, poll summaries)
-- [ ] 4.3 Create `PollsController` with CRUD endpoints
-  - [ ] 4.3.1 `POST /api/polls` - Create poll (requires auth)
-  - [ ] 4.3.2 `GET /api/polls/{id}` - Get poll details
-  - [ ] 4.3.3 `GET /api/polls` - List polls (with filters: creator, status, pagination)
-  - [ ] 4.3.4 `PUT /api/polls/{id}` - Update poll (creator only)
-  - [ ] 4.3.5 `DELETE /api/polls/{id}` - Delete poll (creator only)
-  - [ ] 4.3.6 `POST /api/polls/{id}/close` - Close poll early (creator only)
-- [ ] 4.4 Add validation rules (minimum 2 options, required fields)
-- [ ] 4.5 Write unit tests for `PollService` and integration tests for `PollsController`
+- [x] 4.1 Create `PollService` with business logic
+  - [x] 4.1.1 `CreatePollAsync(userId, title, description, options, settings)` - Returns Poll entity
+  - [x] 4.1.2 `GetPollByIdAsync(pollId)` - Returns Poll with options
+  - [x] 4.1.3 `GetPollsByCreatorAsync(userId)` - Returns creator's polls
+  - [x] 4.1.4 `GetActivePollsAsync()` - Returns all active polls (for discovery)
+  - [x] 4.1.5 `ClosePollAsync(pollId, userId)` - Validates creator, sets `ClosedAt`
+  - [x] 4.1.6 `DeletePollAsync(pollId, userId)` - Soft delete (sets Status = 'Deleted')
+  - [x] 4.1.7 `UpdatePollAsync(pollId, userId, updates)` - Allow editing before votes cast (optional)
+- [x] 4.2 Create DTOs for poll operations
+  - [x] 4.2.1 `CreatePollRequest` (title, description, options[], closesAt?, isResultsPublic, isVotingPublic)
+  - [x] 4.2.2 `PollResponse` (id, title, description, creator, options, stats, status, settings)
+  - [x] 4.2.3 `PollListResponse` (pagination metadata, poll summaries)
+- [x] 4.3 Create `PollsController` with CRUD endpoints
+  - [x] 4.3.1 `POST /api/polls` - Create poll (requires auth)
+  - [x] 4.3.2 `GET /api/polls/{id}` - Get poll details
+  - [x] 4.3.3 `GET /api/polls` - List polls (with filters: creator, status, pagination)
+  - [x] 4.3.4 `PUT /api/polls/{id}` - Update poll (creator only)
+  - [x] 4.3.5 `DELETE /api/polls/{id}` - Delete poll (creator only)
+  - [x] 4.3.6 `POST /api/polls/{id}/close` - Close poll early (creator only)
+- [x] 4.4 Add validation rules (minimum 2 options, required fields)
+- [x] 4.5 Write unit tests for `PollService` and integration tests for `PollsController`
 
 ## 5.0 Voting API
 
