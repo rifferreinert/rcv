@@ -107,9 +107,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // Register application services
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IVotingService, VotingService>();
+builder.Services.AddScoped<IResultsService, ResultsService>();
 
 var app = builder.Build();
 

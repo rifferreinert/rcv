@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Rcv.Web.Api.Data;
 using Rcv.Web.Api.Data.Entities;
 using Rcv.Web.Api.Services;
@@ -69,7 +70,7 @@ public class VotingServiceTests
     }
 
     private static IVotingService CreateService(RcvDbContext context) =>
-        new VotingService(context);
+        new VotingService(context, new MemoryCache(new MemoryCacheOptions()));
 
     // -----------------------------------------------------------------------
     // CastVoteAsync — happy paths

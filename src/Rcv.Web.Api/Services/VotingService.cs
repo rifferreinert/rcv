@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Rcv.Web.Api.Data;
 using Rcv.Web.Api.Data.Entities;
 using Rcv.Web.Api.Models.Responses;
@@ -11,14 +12,17 @@ namespace Rcv.Web.Api.Services;
 public class VotingService : IVotingService
 {
     private readonly RcvDbContext _context;
+    private readonly IMemoryCache _cache;
 
     /// <summary>
     /// Initializes a new instance of <see cref="VotingService"/>.
     /// </summary>
     /// <param name="context">The database context.</param>
-    public VotingService(RcvDbContext context)
+    /// <param name="cache">The memory cache for results invalidation.</param>
+    public VotingService(RcvDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     /// <inheritdoc />
@@ -49,6 +53,7 @@ public class VotingService : IVotingService
             existingVote.RankedChoices = rankedOptionIds;
             existingVote.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            _cache.Remove($"results:{pollId}");
             return (MapToVoteResponse(existingVote), false);
         }
 
@@ -63,6 +68,7 @@ public class VotingService : IVotingService
 
         _context.Votes.Add(vote);
         await _context.SaveChangesAsync();
+        _cache.Remove($"results:{pollId}");
         return (MapToVoteResponse(vote), true);
     }
 
