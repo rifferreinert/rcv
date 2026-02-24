@@ -109,6 +109,7 @@ builder.Services.AddAuthorization();
 // Register application services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPollService, PollService>();
+builder.Services.AddScoped<IVotingService, VotingService>();
 
 var app = builder.Build();
 
