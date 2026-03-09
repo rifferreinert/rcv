@@ -1,8 +1,14 @@
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { Layout } from './Layout'
 import * as AuthContext from '../context/AuthContext'
+
+function LocationDisplay() {
+  const location = useLocation()
+  return <div data-testid="location">{location.pathname}</div>
+}
 
 // Mock AuthContext so tests control the authenticated state
 vi.mock('../context/AuthContext')
@@ -54,5 +60,37 @@ describe('Layout', () => {
     )
 
     expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument()
+  })
+
+  it('navigates to / when the logout button is clicked', async () => {
+    // Arrange — authenticated user with a logout stub that resolves immediately
+    const logout = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: { id: 'u1', email: 'test@example.com', displayName: 'Test User', provider: 'google' },
+      login: vi.fn(),
+      logout,
+    })
+
+    const user = userEvent.setup()
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<div>Home</div>} />
+            <Route path="/dashboard" element={<div>Dashboard</div>} />
+          </Route>
+        </Routes>
+        <LocationDisplay />
+      </MemoryRouter>
+    )
+
+    // Act — click the Logout button
+    await user.click(screen.getByRole('button', { name: /logout/i }))
+
+    // Assert — the app navigated to the home route after logout
+    await waitFor(() => {
+      expect(screen.getByTestId('location').textContent).toBe('/')
+    })
   })
 })
