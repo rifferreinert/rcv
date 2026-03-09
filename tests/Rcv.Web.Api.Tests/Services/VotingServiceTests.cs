@@ -292,4 +292,32 @@ public class VotingServiceTests
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
+
+    // -----------------------------------------------------------------------
+    // CastVoteAsync — cache invalidation
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task CastVoteAsync_NewVote_InvalidatesResultsCache()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        var user = await CreateTestUser(context);
+        var (poll, optionIds) = await CreateTestPoll(context, user.Id);
+
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new VotingService(context, cache);
+
+        var cacheKey = $"results:{poll.Id}";
+        cache.Set(cacheKey, "cached-results-placeholder");
+
+        // Confirm the entry is present before acting
+        cache.TryGetValue(cacheKey, out _).Should().BeTrue("pre-condition: cache entry must exist before casting vote");
+
+        // Act
+        await service.CastVoteAsync(poll.Id, user.Id, optionIds);
+
+        // Assert
+        cache.TryGetValue(cacheKey, out _).Should().BeFalse("casting a vote must remove the cached results entry");
+    }
 }
