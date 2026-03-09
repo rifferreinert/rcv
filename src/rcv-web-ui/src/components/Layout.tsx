@@ -15,7 +15,7 @@ export function Layout({ children }: { children: ReactNode }) {
           {user ? (
             <>
               <span>{user.displayName}</span>
-              <button onClick={() => logout()}>Logout</button>
+              <button onClick={logout}>Logout</button>
             </>
           ) : (
             <Link to="/login">Login</Link>
