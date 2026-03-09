@@ -33,7 +33,7 @@ For each todo item, execute this cycle:
 1. Mark the current todo as in-progress
 2. Delegate to the **Red** sub-agent with a clear description of the behavior to test
 3. **Verify Red's work**:
-   - A new test exists and it fails
+   - A test (new or updated) exists and it fails
    - The failure is meaningful (not a typo or syntax error)
    - The test aligns with the intended behavior
 4. If Red's work is unsatisfactory, re-invoke Red with specific corrections
@@ -72,14 +72,14 @@ After each cycle, assess whether the current behavior increment needs more tests
 
 ## Verification Rules
 Before advancing from any phase, confirm:
-- **After Red**: Exactly one new test exists, it compiles, it fails for the right reason
+- **After Red**: Exactly one test was added or updated, it compiles, it fails for the right reason
 - **After Green**: The new test passes, all other tests pass, no test code was touched, implementation is minimal
 - **After Refactor**: All tests pass, behavior is preserved, code quality improved (or was already good)
 
 ## When to Retry a Sub-Agent
 Re-invoke a sub-agent when:
 - Red wrote a test that doesn't fail, or fails for the wrong reason
-- Red wrote multiple tests instead of one
+- Red wrote or modified multiple tests instead of one
 - Red wrote production code instead of test code
 - Green modified test code
 - Green wrote more code than necessary (added unrequested features)
