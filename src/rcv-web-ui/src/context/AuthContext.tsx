@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import axios from 'axios'
+import client from '../api/client'
 import { User } from '../types'
 
 interface AuthContextValue {
@@ -15,7 +15,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    axios.get('/api/auth/me')
+    client.get('/api/auth/me')
       .then(res => setUser(res.data))
       .catch(() => setUser(null))
   }, [])
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    await axios.post('/api/auth/logout')
+    await client.post('/api/auth/logout')
     setUser(null)
   }
 

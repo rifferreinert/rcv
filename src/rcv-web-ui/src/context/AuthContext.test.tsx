@@ -1,9 +1,15 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import axios from 'axios'
 import { AuthProvider, useAuth } from './AuthContext'
 
-vi.mock('axios')
+vi.mock('../api/client', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+}))
+
+import client from '../api/client'
 
 // A minimal consumer component that surfaces the user state as visible text
 function TestConsumer() {
@@ -33,7 +39,7 @@ describe('AuthContext', () => {
         new Error('Request failed with status code 401'),
         { response: { status: 401, data: {} } }
       )
-      vi.mocked(axios.get).mockRejectedValue(unauthorizedError)
+      vi.mocked(client.get).mockRejectedValue(unauthorizedError)
 
       // Act — render the provider with a consumer that reads the user state
       render(
@@ -56,7 +62,7 @@ describe('AuthContext', () => {
         displayName: 'Test User',
         provider: 'google',
       }
-      vi.mocked(axios.get).mockResolvedValue({ data: mockUser })
+      vi.mocked(client.get).mockResolvedValue({ data: mockUser })
 
       // Act — render the provider with a consumer that displays the user's displayName
       render(

@@ -1,4 +1,4 @@
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import { Layout } from './Layout'
@@ -8,20 +8,22 @@ import * as AuthContext from '../context/AuthContext'
 vi.mock('../context/AuthContext')
 
 describe('Layout', () => {
-  it('renders a navigation header with "RCV" as a home link and renders children', () => {
-    // Arrange — authenticated user, with a recognisable child element
+  it('renders a navigation header with "RCV" as a home link', () => {
+    // Arrange — authenticated user
     vi.mocked(AuthContext.useAuth).mockReturnValue({
       user: { id: 'u1', email: 'test@example.com', displayName: 'Test User', provider: 'google' },
       login: vi.fn(),
       logout: vi.fn(),
     })
 
-    // Act — render Layout with a child
+    // Act — render Layout as a layout route wrapping a child route
     render(
       <MemoryRouter initialEntries={['/']}>
-        <Layout>
-          <div>Child Content</div>
-        </Layout>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<div>Child Content</div>} />
+          </Route>
+        </Routes>
       </MemoryRouter>
     )
 
@@ -30,7 +32,27 @@ describe('Layout', () => {
     expect(homeLink).toBeInTheDocument()
     expect(homeLink).toHaveAttribute('href', '/')
 
-    // Assert — children are rendered
+    // Assert — outlet content is rendered
     expect(screen.getByText('Child Content')).toBeInTheDocument()
+  })
+
+  it('shows login link when not authenticated', () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<div />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument()
   })
 })
