@@ -56,7 +56,7 @@
   - [x] 3.3.2 Implement JWT token generation (HMAC-SHA256, includes userId/email/name/provider claims)
   - [x] 3.3.3 Update `LastLoginAt` timestamp on authentication
 - [x] 3.4 Add `[Authorize]` attribute on protected endpoints
-- [x] 3.5 Write unit tests for `AuthService` (16 tests) and integration tests for `AuthController` (18 tests)
+- [x] 3.5 Write unit tests for `AuthService` (16 tests) and integration tests for `AuthController` (13 tests)
 
 ## 4.0 Poll Management API ✅
 
@@ -80,9 +80,9 @@
   - [x] 4.3.5 `DELETE /api/polls/{id}` - Delete poll (creator only)
   - [x] 4.3.6 `POST /api/polls/{id}/close` - Close poll early (creator only)
 - [x] 4.4 Add validation rules (minimum 2 options, required fields)
-- [x] 4.5 Write unit tests for `PollService` and integration tests for `PollsController`
+- [x] 4.5 Write unit tests for `PollService` (28 tests) and integration tests for `PollsController` (21 tests)
 
-## 5.0 Voting API
+## 5.0 Voting API ✅
 
 - [x] 5.1 Create `VotingService` with business logic
   - [x] 5.1.1 `CastVoteAsync(pollId, userId, rankedOptionIds)` - Validates and saves vote
@@ -100,7 +100,7 @@
   - [x] 5.3.2 `GET /api/polls/{pollId}/votes/me` - Get current user's vote
   - [x] 5.3.3 `GET /api/polls/{pollId}/votes/count` - Get participation stats
 - [x] 5.4 Add validation for ranked choices (no duplicates, valid option IDs)
-- [x] 5.5 Write unit tests for `VotingService` and integration tests for `VotesController`
+- [x] 5.5 Write unit tests for `VotingService` (15 tests) and integration tests for `VotesController` (12 tests)
 
 ## 6.0 Results Calculation and Visualization API ✅
 
@@ -119,27 +119,27 @@
   - [x] 6.3.1 `GET /api/polls/{pollId}/results` - Get results (enforce visibility rules)
   - [x] 6.3.2 `GET /api/polls/{pollId}/results/live` - Real-time results (if enabled)
 - [x] 6.4 Add authorization checks (creator always sees results; others based on poll settings)
-- [x] 6.5 Write unit tests for `ResultsService` with various vote scenarios (tie, majority, elimination rounds)
+- [x] 6.5 Write unit tests for `ResultsService` with various vote scenarios: tie, majority, elimination rounds, caching, no votes (10 tests); integration tests for `ResultsController` (13 tests)
 
-## 7.0 Frontend Core Infrastructure
+## 7.0 Frontend Core Infrastructure ✅
 
-- [ ] 7.1 Set up routing with React Router
-  - [ ] 7.1.1 Configure routes: `/`, `/login`, `/dashboard`, `/polls/new`, `/polls/:id`, `/polls/:id/results`
-  - [ ] 7.1.2 Create protected route wrapper (requires authentication)
-  - [ ] 7.1.3 Create `Layout` component with navigation header
-- [ ] 7.2 Create authentication context and hooks
-  - [ ] 7.2.1 `AuthContext` with user state and login/logout functions
-  - [ ] 7.2.2 `useAuth()` hook to consume auth context
-  - [ ] 7.2.3 Implement token storage and automatic inclusion in API requests
-  - [ ] 7.2.4 Handle token expiration and refresh (if using refresh tokens)
-- [ ] 7.3 Set up API client
-  - [ ] 7.3.1 Create Axios instance with base URL and interceptors
-  - [ ] 7.3.2 Add request interceptor to include JWT token in headers
-  - [ ] 7.3.3 Add response interceptor for error handling (401 → redirect to login)
-- [ ] 7.4 Create TypeScript types mirroring backend DTOs
-  - [ ] 7.4.1 `Poll`, `PollOption`, `Vote`, `Result`, `RoundSummary` types
-  - [ ] 7.4.2 Request/response types for API calls
-- [ ] 7.5 Set up React Query for server state management (queries and mutations)
+- [x] 7.1 Set up routing with React Router
+  - [x] 7.1.1 Configure routes: `/`, `/login`, `/dashboard`, `/polls/new`, `/polls/:id`, `/polls/:id/results`
+  - [x] 7.1.2 Create protected route wrapper (requires authentication) — tested: redirects to /login when unauthenticated, renders children when authenticated (2 tests)
+  - [x] 7.1.3 Create `Layout` component with navigation header — tested: renders RCV home link and auth status (2 tests)
+- [x] 7.2 Create authentication context and hooks
+  - [x] 7.2.1 `AuthContext` with user state and login/logout functions — tested: null on 401, sets user on success (3 tests)
+  - [x] 7.2.2 `useAuth()` hook to consume auth context — tested: throws when used outside AuthProvider
+  - [x] 7.2.3 Token storage and automatic inclusion in API requests — JWT lives in httpOnly cookie; `withCredentials: true` on Axios instance handles automatic cookie inclusion (no manual token storage needed)
+  - [x] 7.2.4 Handle token expiration — 401 response interceptor clears user state and redirects to /login (tested)
+- [x] 7.3 Set up API client
+  - [x] 7.3.1 Create Axios instance with base URL (`VITE_API_URL` env var, default `http://localhost:5041`) and `withCredentials: true` — tested
+  - [x] 7.3.2 JWT auth via httpOnly cookie (`withCredentials: true`) — no request interceptor needed; browser sends cookie automatically
+  - [x] 7.3.3 Add response interceptor for error handling (401 → redirect to /login) — tested
+- [x] 7.4 Create TypeScript types mirroring backend DTOs (`src/types/index.ts`)
+  - [x] 7.4.1 `Poll`, `PollOption`, `Vote`, `Result`, `RoundSummary` types
+  - [x] 7.4.2 Request/response types: `CreatePollRequest`, `UpdatePollRequest`, `CastVoteRequest`, `PollResponse`, `PollListResponse`, `VoteResponse`, `VoteStatusResponse`, `VoteCountResponse`, `ResultResponse`
+- [x] 7.5 Set up React Query — `QueryClient` with 5min staleTime, wrapped in `QueryClientProvider` in `main.tsx`
 
 ## 8.0 Frontend Authentication UI
 
@@ -207,15 +207,15 @@
 
 ## 12.0 Testing and Quality Assurance
 
-- [ ] 12.1 Write unit tests for backend services
-  - [ ] 12.1.1 `PollService` tests (create, close, delete, authorization)
-  - [ ] 12.1.2 `VotingService` tests (cast vote, duplicate handling, validation)
-  - [ ] 12.1.3 `ResultsService` tests (integration with Rcv.Core, caching)
-  - [ ] 12.1.4 `AuthService` tests (user creation, token generation)
-- [ ] 12.2 Write integration tests for API controllers
-  - [ ] 12.2.1 `PollsController` (CRUD operations, authorization)
-  - [ ] 12.2.2 `VotesController` (voting flow, edge cases)
-  - [ ] 12.2.3 `ResultsController` (results visibility rules)
+- [x] 12.1 Write unit tests for backend services
+  - [x] 12.1.1 `PollService` tests (create, close, delete, authorization) — 28 tests
+  - [x] 12.1.2 `VotingService` tests (cast vote, duplicate handling, validation) — 15 tests
+  - [x] 12.1.3 `ResultsService` tests (integration with Rcv.Core, caching) — 10 tests
+  - [x] 12.1.4 `AuthService` tests (user creation, token generation) — 16 tests
+- [x] 12.2 Write integration tests for API controllers
+  - [x] 12.2.1 `PollsController` (CRUD operations, authorization) — 21 tests
+  - [x] 12.2.2 `VotesController` (voting flow, edge cases) — 12 tests
+  - [x] 12.2.3 `ResultsController` (results visibility rules) — 13 tests
 - [ ] 12.3 Manual testing checklist
   - [ ] 12.3.1 Authentication flow with each SSO provider
   - [ ] 12.3.2 Poll creation and management (create, close, delete)
