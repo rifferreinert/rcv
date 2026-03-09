@@ -29,4 +29,25 @@ describe('AuthButton', () => {
     // Assert — a logout button is present
     expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument()
   })
+
+  it('shows a login link pointing to /login when unauthenticated', () => {
+    // Arrange — no authenticated user
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    // Act — render AuthButton inside a router
+    render(
+      <MemoryRouter>
+        <AuthButton />
+      </MemoryRouter>
+    )
+
+    // Assert — a link with text "Login" that points to /login is rendered
+    const loginLink = screen.getByRole('link', { name: /login/i })
+    expect(loginLink).toBeInTheDocument()
+    expect(loginLink).toHaveAttribute('href', '/login')
+  })
 })
