@@ -15,6 +15,16 @@ function TestConsumer() {
   )
 }
 
+// A consumer that renders the authenticated user's displayName
+function DisplayNameConsumer() {
+  const { user } = useAuth()
+  return (
+    <div data-testid="display-name">
+      {user ? user.displayName : ''}
+    </div>
+  )
+}
+
 describe('AuthContext', () => {
   describe('AuthProvider', () => {
     it('sets user to null when /api/auth/me returns 401', async () => {
@@ -35,6 +45,29 @@ describe('AuthContext', () => {
       // Assert — once the async auth check resolves, user must be null
       await waitFor(() => {
         expect(screen.getByTestId('user-state')).toHaveTextContent('null')
+      })
+    })
+
+    it('sets user to the returned object when /api/auth/me resolves successfully', async () => {
+      // Arrange — simulate a successful response with a user payload
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        displayName: 'Test User',
+        provider: 'google',
+      }
+      vi.mocked(axios.get).mockResolvedValue({ data: mockUser })
+
+      // Act — render the provider with a consumer that displays the user's displayName
+      render(
+        <AuthProvider>
+          <DisplayNameConsumer />
+        </AuthProvider>
+      )
+
+      // Assert — once the async auth check resolves, the user's displayName is shown
+      await waitFor(() => {
+        expect(screen.getByTestId('display-name')).toHaveTextContent('Test User')
       })
     })
   })
