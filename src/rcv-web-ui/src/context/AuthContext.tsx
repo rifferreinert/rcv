@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = (provider: string) => {
-    window.location.href = `/api/auth/${provider}`
+    window.location.href = `/api/auth/login/${provider}`
   }
 
   const logout = async () => {
