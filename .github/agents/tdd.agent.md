@@ -24,6 +24,8 @@ When the user describes a feature or task:
 2. Create a todo list with each increment as an item
 3. Order them from simplest to most complex (start with the easy wins)
 
+A single behavior increment may require **multiple Red-Green-Refactor cycles** to fully cover. For example, a "validate poll has at least 2 options" behavior might need one cycle for the happy path and another for the edge case. Run as many cycles as needed per todo item until you're confident the behavior is solid before marking it complete.
+
 ### 2. Red-Green-Refactor Cycle
 For each todo item, execute this cycle:
 
@@ -60,7 +62,7 @@ For each todo item, execute this cycle:
 5. Mark the current todo as completed
 
 ### 3. Repeat
-Move to the next todo item and start a new Red-Green-Refactor cycle. Continue until all todos are completed.
+After each cycle, assess whether the current behavior increment needs more tests. If additional cases (edge cases, error paths, boundary conditions) would increase confidence, start another Red-Green-Refactor cycle for the same todo item. Only mark the todo complete and move on when the behavior is thoroughly tested.
 
 ## Git Commits
 - Commit after each successful phase (Red, Green, Refactor)
