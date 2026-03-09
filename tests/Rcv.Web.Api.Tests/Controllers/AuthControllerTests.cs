@@ -282,6 +282,42 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    // -----------------------------------------------------------------------
+    // GET /api/auth/dev-login
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task DevLogin_InDevelopment_SetsJwtCookieAndRedirectsToDashboard()
+    {
+        // Arrange
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        // Act
+        var response = await client.GetAsync("/api/auth/dev-login");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect,
+            "dev-login should redirect to the dashboard");
+
+        response.Headers.Location?.ToString().Should().Be("/dashboard",
+            "dev-login should redirect to /dashboard");
+
+        var setCookieHeaders = response.Headers
+            .Where(h => h.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase))
+            .SelectMany(h => h.Value)
+            .ToList();
+
+        setCookieHeaders.Should().Contain(h => h.StartsWith("rcv_jwt="),
+            "dev-login should set the rcv_jwt cookie");
+
+        setCookieHeaders.Should().Contain(h =>
+            h.StartsWith("rcv_jwt=") && h.Contains("httponly", StringComparison.OrdinalIgnoreCase),
+            "the rcv_jwt cookie must be httpOnly");
+    }
 }
 
 /// <summary>
