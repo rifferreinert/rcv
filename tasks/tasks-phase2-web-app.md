@@ -84,23 +84,23 @@
 
 ## 5.0 Voting API
 
-- [ ] 5.1 Create `VotingService` with business logic
-  - [ ] 5.1.1 `CastVoteAsync(pollId, userId, rankedOptionIds)` - Validates and saves vote
-  - [ ] 5.1.2 `GetUserVoteAsync(pollId, userId)` - Returns user's vote if exists
-  - [ ] 5.1.3 `GetVoteCountAsync(pollId)` - Returns participation count
-  - [ ] 5.1.4 Validate poll is open (not closed)
-  - [ ] 5.1.5 Validate all option IDs belong to poll
-  - [ ] 5.1.6 Handle duplicate vote attempts (update existing or return error)
-- [ ] 5.2 Create DTOs for voting operations
-  - [ ] 5.2.1 `CastVoteRequest` (rankedOptionIds[])
-  - [ ] 5.2.2 `VoteResponse` (voteId, pollId, castAt, updatedAt)
-  - [ ] 5.2.3 `VoteStatusResponse` (hasVoted, canChange, votedAt)
-- [ ] 5.3 Create `VotesController` with voting endpoints
-  - [ ] 5.3.1 `POST /api/polls/{pollId}/votes` - Cast/update vote (requires auth)
-  - [ ] 5.3.2 `GET /api/polls/{pollId}/votes/me` - Get current user's vote
-  - [ ] 5.3.3 `GET /api/polls/{pollId}/votes/count` - Get participation stats
-- [ ] 5.4 Add validation for ranked choices (no duplicates, valid option IDs)
-- [ ] 5.5 Write unit tests for `VotingService` and integration tests for `VotesController`
+- [x] 5.1 Create `VotingService` with business logic
+  - [x] 5.1.1 `CastVoteAsync(pollId, userId, rankedOptionIds)` - Validates and saves vote
+  - [x] 5.1.2 `GetUserVoteAsync(pollId, userId)` - Returns user's vote if exists
+  - [x] 5.1.3 `GetVoteCountAsync(pollId)` - Returns participation count
+  - [x] 5.1.4 Validate poll is open (not closed)
+  - [x] 5.1.5 Validate all option IDs belong to poll
+  - [x] 5.1.6 Handle duplicate vote attempts (update existing or return error)
+- [x] 5.2 Create DTOs for voting operations
+  - [x] 5.2.1 `CastVoteRequest` (rankedOptionIds[])
+  - [x] 5.2.2 `VoteResponse` (voteId, pollId, castAt, updatedAt)
+  - [x] 5.2.3 `VoteStatusResponse` (hasVoted, canChange, votedAt)
+- [x] 5.3 Create `VotesController` with voting endpoints
+  - [x] 5.3.1 `POST /api/polls/{pollId}/votes` - Cast/update vote (requires auth)
+  - [x] 5.3.2 `GET /api/polls/{pollId}/votes/me` - Get current user's vote
+  - [x] 5.3.3 `GET /api/polls/{pollId}/votes/count` - Get participation stats
+- [x] 5.4 Add validation for ranked choices (no duplicates, valid option IDs)
+- [x] 5.5 Write unit tests for `VotingService` and integration tests for `VotesController`
 
 ## 6.0 Results Calculation and Visualization API
 
