@@ -2,8 +2,10 @@ import axios, { type AxiosError } from 'axios'
 
 const LOGIN_PATH = '/login'
 
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5041'
+
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:5041',
+  baseURL: API_BASE_URL,
   withCredentials: true,
 })
 

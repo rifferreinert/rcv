@@ -1,4 +1,5 @@
 import { useAuth } from '../context/AuthContext'
+import { API_BASE_URL } from '../api/client'
 
 function GoogleIcon() {
   return (
@@ -91,10 +92,7 @@ export default function Login() {
         {import.meta.env.DEV && (
           <div className="mt-6 pt-6 border-t border-gray-200">
             <button
-              onClick={() => {
-                const base = import.meta.env.VITE_API_URL ?? 'http://localhost:5041'
-                window.location.href = `${base}/api/auth/dev-login`
-              }}
+              onClick={() => { window.location.href = `${API_BASE_URL}/api/auth/dev-login` }}
               className="w-full px-4 py-3 border border-yellow-400 rounded-lg bg-yellow-50 text-yellow-800 font-medium text-sm hover:bg-yellow-100 transition-colors"
             >
               Dev Login (local only)
