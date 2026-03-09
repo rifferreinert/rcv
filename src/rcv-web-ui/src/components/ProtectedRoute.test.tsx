@@ -37,4 +37,32 @@ describe('ProtectedRoute', () => {
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument()
     expect(screen.getByText('Login Page')).toBeInTheDocument()
   })
+
+  it('renders children when user is authenticated', () => {
+    // Arrange — authenticated user
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: { id: 'u1', email: 'test@example.com', displayName: 'Test User', provider: 'google' },
+      login: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    // Act — render a protected route with a child
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <div>Protected Content</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    // Assert — child content is visible
+    expect(screen.getByText('Protected Content')).toBeInTheDocument()
+  })
 })
