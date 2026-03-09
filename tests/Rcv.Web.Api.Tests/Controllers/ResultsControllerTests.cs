@@ -190,6 +190,44 @@ public class ResultsControllerTests
             "an unauthenticated user should be able to see results of an active poll when IsResultsPublic is true");
     }
 
+    [Fact]
+    public async Task GetResults_ForClosedPollWithMajority_ReturnsCorrectWinnerAndRounds()
+    {
+        // Arrange
+        await using var factory = new ResultsApiFactory();
+
+        var creator = MakeUser(Guid.NewGuid());
+        var voterOne = MakeUser(Guid.NewGuid(), "voter1@test.com", "Voter One");
+        var voterTwo = MakeUser(Guid.NewGuid(), "voter2@test.com", "Voter Two");
+
+        await factory.SeedUserAsync(creator);
+        await factory.SeedUserAsync(voterOne);
+        await factory.SeedUserAsync(voterTwo);
+
+        var (pollId, optionIds) = await factory.SeedPollAsync(creator.Id, status: "Closed");
+
+        // Both voters rank Option A (optionIds[0]) first — clear majority
+        await factory.SeedVoteAsync(pollId, voterOne.Id, optionIds);
+        await factory.SeedVoteAsync(pollId, voterTwo.Id, optionIds);
+
+        var client = factory.CreateUnauthenticatedClient();
+
+        // Act
+        var response = await client.GetAsync($"/api/polls/{pollId}/results");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await DeserializeAsync<ResultResponse>(response);
+        result.Should().NotBeNull();
+        result!.PollId.Should().Be(pollId);
+        result.Winner.Should().NotBeNull("a clear majority exists so a winner must be declared");
+        result.IsTie.Should().BeFalse("one option has all first-choice votes so there is no tie");
+        result.TotalVotes.Should().Be(2, "exactly two votes were cast");
+        result.Rounds.Should().NotBeEmpty("RCV must produce at least one round of counting");
+        result.FinalVoteTotals.Should().NotBeEmpty("final vote totals must be recorded");
+    }
+
     // -----------------------------------------------------------------------
     // GET /api/polls/{pollId}/results/live
     // -----------------------------------------------------------------------
