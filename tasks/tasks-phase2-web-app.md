@@ -102,24 +102,24 @@
 - [x] 5.4 Add validation for ranked choices (no duplicates, valid option IDs)
 - [x] 5.5 Write unit tests for `VotingService` and integration tests for `VotesController`
 
-## 6.0 Results Calculation and Visualization API
+## 6.0 Results Calculation and Visualization API ✅
 
-- [ ] 6.1 Create `ResultsService` to orchestrate Rcv.Core integration
-  - [ ] 6.1.1 `CalculateResultsAsync(pollId)` - Fetches votes, maps to `RankedBallot[]`, calls `RankedChoicePoll.CalculateResult()`
-  - [ ] 6.1.2 Map `RcvResult` domain model to `ResultResponse` DTO
-  - [ ] 6.1.3 Include round-by-round data for visualization
-  - [ ] 6.1.4 Implement caching (in-memory for MVP; invalidate on new vote)
-  - [ ] 6.1.5 Handle polls with no votes (return appropriate message)
-- [ ] 6.2 Create `ResultResponse` DTO
-  - [ ] 6.2.1 Include winner (or tie status), tied options
-  - [ ] 6.2.2 Include rounds[] with vote counts and eliminated candidates
-  - [ ] 6.2.3 Include final vote totals by option
-  - [ ] 6.2.4 Include participation stats (total votes, turnout if applicable)
-- [ ] 6.3 Create `ResultsController` with results endpoints
-  - [ ] 6.3.1 `GET /api/polls/{pollId}/results` - Get results (enforce visibility rules)
-  - [ ] 6.3.2 `GET /api/polls/{pollId}/results/live` - Real-time results (if enabled)
-- [ ] 6.4 Add authorization checks (creator always sees results; others based on poll settings)
-- [ ] 6.5 Write unit tests for `ResultsService` with various vote scenarios (tie, majority, elimination rounds)
+- [x] 6.1 Create `ResultsService` to orchestrate Rcv.Core integration
+  - [x] 6.1.1 `CalculateResultsAsync(pollId)` - Fetches votes, maps to `RankedBallot[]`, calls `RankedChoicePoll.CalculateResult()`
+  - [x] 6.1.2 Map `RcvResult` domain model to `ResultResponse` DTO
+  - [x] 6.1.3 Include round-by-round data for visualization
+  - [x] 6.1.4 Implement caching (in-memory for MVP; invalidate on new vote or update)
+  - [x] 6.1.5 Handle polls with no votes (return appropriate message)
+- [x] 6.2 Create `ResultResponse` DTO
+  - [x] 6.2.1 Include winner (or tie status), tied options
+  - [x] 6.2.2 Include rounds[] with vote counts and eliminated candidates
+  - [x] 6.2.3 Include final vote totals by option
+  - [x] 6.2.4 Include participation stats (total votes, turnout if applicable)
+- [x] 6.3 Create `ResultsController` with results endpoints
+  - [x] 6.3.1 `GET /api/polls/{pollId}/results` - Get results (enforce visibility rules)
+  - [x] 6.3.2 `GET /api/polls/{pollId}/results/live` - Real-time results (if enabled)
+- [x] 6.4 Add authorization checks (creator always sees results; others based on poll settings)
+- [x] 6.5 Write unit tests for `ResultsService` with various vote scenarios (tie, majority, elimination rounds)
 
 ## 7.0 Frontend Core Infrastructure
 
