@@ -165,6 +165,31 @@ public class ResultsControllerTests
             "unauthenticated user should see results of closed poll");
     }
 
+    [Fact]
+    public async Task GetResults_Unauthenticated_ActivePublicPoll_Returns200()
+    {
+        // Arrange
+        await using var factory = new ResultsApiFactory();
+        var creator = MakeUser(Guid.NewGuid());
+        var voter = MakeUser(Guid.NewGuid(), "voter@test.com", "Voter");
+        await factory.SeedUserAsync(creator);
+        await factory.SeedUserAsync(voter);
+        var (pollId, optionIds) = await factory.SeedPollAsync(
+            creator.Id,
+            status: "Active",
+            isResultsPublic: true);
+        await factory.SeedVoteAsync(pollId, voter.Id, optionIds);
+
+        var client = factory.CreateUnauthenticatedClient();
+
+        // Act
+        var response = await client.GetAsync($"/api/polls/{pollId}/results");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "an unauthenticated user should be able to see results of an active poll when IsResultsPublic is true");
+    }
+
     // -----------------------------------------------------------------------
     // GET /api/polls/{pollId}/results/live
     // -----------------------------------------------------------------------
