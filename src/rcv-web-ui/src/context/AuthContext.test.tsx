@@ -71,4 +71,24 @@ describe('AuthContext', () => {
       })
     })
   })
+
+  describe('useAuth', () => {
+    it('throws an error when called outside of AuthProvider', () => {
+      // Arrange — a bare component that calls useAuth() with no provider in the tree
+      function BareConsumer() {
+        useAuth()
+        return null
+      }
+
+      // Suppress React's console.error output for the expected throw
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      // Act & Assert — rendering without AuthProvider must throw the sentinel message
+      expect(() => render(<BareConsumer />)).toThrow(
+        'useAuth must be used within an AuthProvider'
+      )
+
+      consoleError.mockRestore()
+    })
+  })
 })
