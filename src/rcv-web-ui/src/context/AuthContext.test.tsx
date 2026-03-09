@@ -78,6 +78,35 @@ describe('AuthContext', () => {
     })
   })
 
+  describe('login', () => {
+    it("sets window.location.href to '/api/auth/login/{provider}' for the given provider", () => {
+      // Arrange — stub window.location so we can assert on href without a real navigation
+      vi.mocked(client.get).mockResolvedValue({ data: null })
+      vi.stubGlobal('location', { href: '' })
+
+      let capturedLogin: (provider: string) => void = () => {}
+
+      function LoginCapture() {
+        capturedLogin = useAuth().login
+        return null
+      }
+
+      render(
+        <AuthProvider>
+          <LoginCapture />
+        </AuthProvider>
+      )
+
+      // Act — invoke login with a provider name
+      capturedLogin('google')
+
+      // Assert — the redirect URL must include the /login/ path segment
+      expect(window.location.href).toBe('/api/auth/login/google')
+
+      vi.unstubAllGlobals()
+    })
+  })
+
   describe('useAuth', () => {
     it('throws an error when called outside of AuthProvider', () => {
       // Arrange — a bare component that calls useAuth() with no provider in the tree
