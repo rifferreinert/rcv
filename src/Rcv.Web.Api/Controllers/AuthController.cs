@@ -52,13 +52,7 @@ public class AuthController : ControllerBase
         var user = await _authService.GetOrCreateUserAsync("dev-user-001", "dev", "dev@localhost", "Dev User");
         var jwt = _authService.GenerateJwtToken(user);
 
-        Response.Cookies.Append(JwtCookieName, jwt, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(7),
-        });
+        AppendJwtCookie(jwt);
 
         return Redirect("/dashboard");
     }
@@ -111,13 +105,7 @@ public class AuthController : ControllerBase
         var jwt = _authService.GenerateJwtToken(user);
 
         // Issue the JWT as an httpOnly cookie so JavaScript cannot access it
-        Response.Cookies.Append(JwtCookieName, jwt, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(7),
-        });
+        AppendJwtCookie(jwt);
 
         // Remove the temporary external cookie
         await HttpContext.SignOutAsync("External");
@@ -142,6 +130,16 @@ public class AuthController : ControllerBase
 
         return Ok();
     }
+
+    // Issues the JWT as an httpOnly cookie valid for 7 days.
+    private void AppendJwtCookie(string jwt) =>
+        Response.Cookies.Append(JwtCookieName, jwt, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddDays(7),
+        });
 
     /// <summary>
     /// Returns the currently authenticated user's profile.
