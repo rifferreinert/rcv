@@ -42,8 +42,13 @@ builder.Services.AddCors(options =>
 // Configure Database
 builder.Services.AddDbContext<Rcv.Web.Api.Data.RcvDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseSqlServer(connectionString);
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+
+    if (builder.Environment.IsDevelopment())
+        options.UseSqlite(connectionString);
+    else
+        options.UseSqlServer(connectionString);
 });
 
 // Configure Authentication: JWT Bearer (default) + temporary external cookie + OAuth providers
@@ -79,28 +84,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     })
     // Temporary cookie used only to hold state during the OAuth2 handshake
     .AddCookie("External")
-    // Google OAuth2
+    // Google OAuth2 — credentials read lazily so WebApplicationFactory overrides are picked up.
+    // If credentials are not configured, the scheme is still registered but OAuth flow will fail
+    // at the provider level. Use the dev-login endpoint for local development instead.
     .AddGoogle(options =>
     {
-        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]
-            ?? throw new InvalidOperationException("Google ClientId is not configured.");
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
-            ?? throw new InvalidOperationException("Google ClientSecret is not configured.");
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "not-configured";
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "not-configured";
         options.SignInScheme = "External";
-        // Middleware handles the raw callback from Google at this path,
-        // sets the External cookie, then redirects to our controller route.
         options.CallbackPath = "/api/auth/signin/google";
     })
     // Microsoft Account OAuth2
     .AddMicrosoftAccount(options =>
     {
-        options.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"]
-            ?? throw new InvalidOperationException("Microsoft ClientId is not configured.");
-        options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"]
-            ?? throw new InvalidOperationException("Microsoft ClientSecret is not configured.");
+        options.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"] ?? "not-configured";
+        options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"] ?? "not-configured";
         options.SignInScheme = "External";
-        // Middleware handles the raw callback from Microsoft at this path,
-        // sets the External cookie, then redirects to our controller route.
         options.CallbackPath = "/api/auth/signin/microsoft";
     });
 
@@ -114,6 +113,14 @@ builder.Services.AddScoped<IVotingService, VotingService>();
 builder.Services.AddScoped<IResultsService, ResultsService>();
 
 var app = builder.Build();
+
+// In development, automatically create the SQLite database schema on startup
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<Rcv.Web.Api.Data.RcvDbContext>();
+    db.Database.EnsureCreated();
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
