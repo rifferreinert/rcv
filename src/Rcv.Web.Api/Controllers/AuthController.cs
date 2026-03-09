@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using Rcv.Web.Api.Models.Responses;
 using Rcv.Web.Api.Services;
 using System.Security.Claims;
@@ -24,14 +26,41 @@ public class AuthController : ControllerBase
     private const string JwtCookieName = "rcv_jwt";
 
     private readonly IAuthService _authService;
+    private readonly IWebHostEnvironment _env;
 
     /// <summary>
     /// Initializes a new instance of <see cref="AuthController"/>.
     /// </summary>
     /// <param name="authService">The authentication service.</param>
-    public AuthController(IAuthService authService)
+    /// <param name="env">The web host environment.</param>
+    public AuthController(IAuthService authService, IWebHostEnvironment env)
     {
         _authService = authService;
+        _env = env;
+    }
+
+    /// <summary>
+    /// Development-only shortcut: creates/fetches a dev user, issues a JWT cookie,
+    /// and redirects to the dashboard. Returns 404 in non-Development environments.
+    /// </summary>
+    [HttpGet("dev-login")]
+    public async Task<IActionResult> DevLogin()
+    {
+        if (!_env.IsDevelopment())
+            return NotFound();
+
+        var user = await _authService.GetOrCreateUserAsync("dev-user-001", "dev", "dev@localhost", "Dev User");
+        var jwt = _authService.GenerateJwtToken(user);
+
+        Response.Cookies.Append(JwtCookieName, jwt, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddDays(7),
+        });
+
+        return Redirect("/dashboard");
     }
 
     /// <summary>
