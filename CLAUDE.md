@@ -15,40 +15,15 @@ cd src/rcv-web-ui && npm run build              # Build frontend for production
 
 ### Running Locally
 
-**Zero-config local dev** — no database, OAuth credentials, or secrets required:
-
-**Terminal 1 — Backend API:**
 ```bash
-dotnet run --project src/Rcv.Web.Api            # http://localhost:5041
-```
-- A SQLite database (`src/Rcv.Web.Api/rcv-dev.db`) is created automatically on first run.
-- Swagger UI is available at `http://localhost:5041` in Development mode.
-
-**Terminal 2 — Frontend:**
-```bash
-cd src/rcv-web-ui
-npm install          # first time only
-npm run dev          # http://localhost:5173
+dotnet run --project src/Rcv.Web.Api   # http://localhost:5041 (Swagger UI at root)
+cd src/rcv-web-ui && npm install && npm run dev  # http://localhost:5173
 ```
 
-**Logging in during local dev:**
-Open `http://localhost:5173/login` and click the **"Dev Login (local only)"** button. This calls
-`GET /api/auth/dev-login`, creates a fixed test user (`dev@localhost`), and issues a JWT cookie —
-no OAuth provider needed. The button only appears when `import.meta.env.DEV` is `true`.
+Log in at `/login` using the **"Dev Login (local only)"** button — no OAuth credentials needed.
+The SQLite database is created automatically on first run.
 
-**Using real OAuth providers (optional):**
-Register OAuth app credentials via `dotnet user-secrets`:
-```bash
-cd src/Rcv.Web.Api
-dotnet user-secrets set "Authentication:Google:ClientId"     "<your-id>"
-dotnet user-secrets set "Authentication:Google:ClientSecret" "<your-secret>"
-dotnet user-secrets set "Authentication:Microsoft:ClientId"     "<your-id>"
-dotnet user-secrets set "Authentication:Microsoft:ClientSecret" "<your-secret>"
-```
-The Google and Microsoft sign-in buttons on the login page will then work end-to-end.
-
-> **HTTPS local dev**: `dotnet run --project src/Rcv.Web.Api --launch-profile https` runs on
-> `https://localhost:7188`. Real OAuth providers require HTTPS callback URLs.
+To use real Google/Microsoft OAuth, set credentials via `dotnet user-secrets` in `src/Rcv.Web.Api`.
 
 ### Testing
 ```bash
