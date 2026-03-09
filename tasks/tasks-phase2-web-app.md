@@ -141,18 +141,18 @@
   - [x] 7.4.2 Request/response types: `CreatePollRequest`, `UpdatePollRequest`, `CastVoteRequest`, `PollResponse`, `PollListResponse`, `VoteResponse`, `VoteStatusResponse`, `VoteCountResponse`, `ResultResponse`
 - [x] 7.5 Set up React Query — `QueryClient` with 5min staleTime, wrapped in `QueryClientProvider` in `main.tsx`
 
-## 8.0 Frontend Authentication UI
+## 8.0 Frontend Authentication UI ✅
 
-- [ ] 8.1 Create `Login` page with SSO provider buttons
-  - [ ] 8.1.1 Display buttons for each provider (Slack, Teams, Google, Apple, Microsoft)
-  - [ ] 8.1.2 Style buttons with provider branding (official icons and colors)
-  - [ ] 8.1.3 Initiate OAuth flow by redirecting to `/api/auth/login/{provider}`
-- [ ] 8.2 Handle OAuth callback and token storage
-  - [ ] 8.2.1 Parse JWT from callback URL or cookie
-  - [ ] 8.2.2 Store token in localStorage (or secure cookie)
-  - [ ] 8.2.3 Redirect to dashboard on successful login
-- [ ] 8.3 Create `AuthButton` component for header (shows user name, logout button when authenticated)
-- [ ] 8.4 Implement logout functionality (clear token, redirect to home)
+- [x] 8.1 Create `Login` page with SSO provider buttons
+  - [x] 8.1.1 Display buttons for each provider (Google, Microsoft; Slack/Teams/Apple deferred — not supported by backend)
+  - [x] 8.1.2 Style buttons with provider branding (inline SVG icons with official brand colors)
+  - [x] 8.1.3 Initiate OAuth flow by redirecting to `/api/auth/login/{provider}` (also fixed bug: was incorrectly using `/api/auth/{provider}`)
+- [x] 8.2 Handle OAuth callback and token storage
+  - [x] 8.2.1 JWT lives in httpOnly cookie — no frontend parsing needed; backend sets it on callback
+  - [x] 8.2.2 No token storage needed — browser sends httpOnly cookie automatically via `withCredentials: true`
+  - [x] 8.2.3 Redirect to dashboard on successful login — handled by backend (`AuthController` redirects to `/dashboard`)
+- [x] 8.3 Create `AuthButton` component for header (shows user name and logout button when authenticated; shows Login link when not)
+- [x] 8.4 Implement logout functionality (calls `POST /api/auth/logout`, clears user state, navigates to `/`)
 
 ## 9.0 Frontend Poll Management UI
 
