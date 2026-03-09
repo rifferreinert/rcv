@@ -33,6 +33,10 @@ dotnet test --filter "FullyQualifiedName~PollServiceTests"      # Run specific t
 dotnet test --filter "FullyQualifiedName~RcvCalculatorEdgeCaseTests"  # Core edge cases
 ```
 
+```bash
+cd src/rcv-web-ui && npx vitest run            # Run all frontend tests once
+```
+
 ## Architecture
 
 ### Solution Structure
