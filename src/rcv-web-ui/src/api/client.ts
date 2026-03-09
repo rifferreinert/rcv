@@ -1,4 +1,6 @@
-import axios from 'axios'
+import axios, { type AxiosError } from 'axios'
+
+const LOGIN_PATH = '/login'
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:5041',
@@ -7,9 +9,9 @@ const client = axios.create({
 
 client.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
-      window.location.href = '/login'
+  (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      window.location.href = LOGIN_PATH
     }
     return Promise.reject(error)
   }
