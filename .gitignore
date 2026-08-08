@@ -287,6 +287,9 @@ node_modules/
 src/rcv-web-ui/coverage/
 src/rcv-web-ui/playwright-report/
 src/rcv-web-ui/test-results/
+.env
+.env.*
+!.env.example
 
 # Visual Studio 6 build log
 *.plg

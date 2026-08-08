@@ -17,4 +17,10 @@ public class UpdatePollRequest
 
     /// <summary>New close deadline. Must be in the future if provided.</summary>
     public DateTime? ClosesAt { get; set; }
+
+    /// <summary>Whether to remove the poll's existing close deadline.</summary>
+    public bool RemoveClosesAt { get; set; }
+
+    /// <summary>Whether results are visible while voting remains open.</summary>
+    public bool? IsResultsPublic { get; set; }
 }

@@ -26,7 +26,7 @@ public interface IVotingService
     /// <param name="userId">The user whose vote to retrieve.</param>
     /// <returns>The vote response, or <c>null</c> if the user has not voted.</returns>
     /// <exception cref="KeyNotFoundException">Poll not found.</exception>
-    Task<VoteResponse?> GetUserVoteAsync(Guid pollId, Guid userId);
+    Task<VoteStatusResponse> GetUserVoteAsync(Guid pollId, Guid userId);
 
     /// <summary>
     /// Returns participation statistics for a poll.

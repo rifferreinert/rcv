@@ -1,5 +1,6 @@
 using Rcv.Web.Api.Models.Requests;
 using Rcv.Web.Api.Models.Responses;
+using Rcv.Web.Api.Data.Entities;
 
 namespace Rcv.Web.Api.Services;
 
@@ -30,7 +31,11 @@ public interface IPollService
     /// <param name="page">1-based page number.</param>
     /// <param name="pageSize">Maximum results per page.</param>
     /// <returns>A paginated list of the creator's polls.</returns>
-    Task<PollListResponse> GetPollsByCreatorAsync(Guid creatorId, int page, int pageSize);
+    Task<PollListResponse> GetPollsByCreatorAsync(
+        Guid creatorId,
+        int page,
+        int pageSize,
+        PollStatus? status = null);
 
     /// <summary>
     /// Lists all currently active (non-closed, non-deleted) polls, ordered by creation date descending.
@@ -38,11 +43,7 @@ public interface IPollService
     /// <param name="page">1-based page number.</param>
     /// <param name="pageSize">Maximum results per page.</param>
     /// <returns>A paginated list of active polls.</returns>
-    Task<PollListResponse> GetActivePollsAsync(int page, int pageSize);
-
-    /// <summary>
-    /// Closes a poll early so no further votes can be cast.
-    /// </summary>
+    /// <summary>Closes a poll early so no further votes can be cast.</summary>
     /// <param name="pollId">The poll to close.</param>
     /// <param name="requestingUserId">The user requesting the close; must be the poll creator.</param>
     /// <returns>The updated poll with Status = "Closed".</returns>

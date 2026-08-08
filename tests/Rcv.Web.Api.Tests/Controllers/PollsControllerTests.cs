@@ -27,8 +27,14 @@ namespace Rcv.Web.Api.Tests.Controllers;
 /// </summary>
 public class PollsControllerTests
 {
-    private static readonly JsonSerializerOptions JsonOptions =
-        new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        return options;
+    }
 
     // -----------------------------------------------------------------------
     // POST /api/polls
@@ -64,7 +70,7 @@ public class PollsControllerTests
         poll.Should().NotBeNull();
         poll!.Id.Should().NotBe(Guid.Empty);
         poll.Title.Should().Be("Best programming language?");
-        poll.Status.Should().Be("Active");
+        poll.Status.Should().Be(PollStatus.Active);
     }
 
     /// <summary>
@@ -184,7 +190,7 @@ public class PollsControllerTests
         await factory.SeedUserAsync(user);
         await factory.SeedPollAsync(user.Id, "Poll One");
         await factory.SeedPollAsync(user.Id, "Poll Two");
-        var client = factory.CreateUnauthenticatedClient();
+        var client = factory.CreateAuthenticatedClient(user);
 
         // Act
         var response = await client.GetAsync("/api/polls");
@@ -204,7 +210,7 @@ public class PollsControllerTests
     /// should be returned.
     /// </summary>
     [Fact]
-    public async Task ListPolls_WithCreatorIdFilter_ReturnsOnlyCreatorPolls()
+    public async Task ListPolls_IgnoresCreatorIdAndReturnsOnlyCurrentUsersPolls()
     {
         // Arrange
         await using var factory = new PollsApiFactory();
@@ -216,9 +222,9 @@ public class PollsControllerTests
         await factory.SeedPollAsync(userA.Id, "User A's Poll");
         await factory.SeedPollAsync(userB.Id, "User B's Poll");
 
-        var client = factory.CreateUnauthenticatedClient();
+        var client = factory.CreateAuthenticatedClient(userB);
 
-        // Act — filter by User A's ID only
+        // Act — an arbitrary creator ID must not expose that user's polls
         var response = await client.GetAsync($"/api/polls?creatorId={userA.Id}");
 
         // Assert
@@ -226,8 +232,8 @@ public class PollsControllerTests
 
         var list = await DeserializeAsync<PollListResponse>(response);
         list.Should().NotBeNull();
-        list!.Items.Should().OnlyContain(p => p.Creator.Id == userA.Id,
-            "filtering by creatorId must exclude other users' polls");
+        list!.Items.Should().OnlyContain(p => p.Creator.Id == userB.Id,
+            "poll listings must be scoped to the authenticated user");
     }
 
     // -----------------------------------------------------------------------
@@ -370,7 +376,7 @@ public class PollsControllerTests
 
         var poll = await DeserializeAsync<PollResponse>(response);
         poll.Should().NotBeNull();
-        poll!.Status.Should().Be("Closed",
+        poll!.Status.Should().Be(PollStatus.Closed,
             "the poll status should be 'Closed' after the close action");
     }
 
@@ -571,7 +577,7 @@ public class PollsControllerTests
     // -----------------------------------------------------------------------
 
     /// <summary>
-    /// Fetching a poll that has been soft-deleted (Status = "Deleted") should
+    /// Fetching a poll that has been soft-deleted (Status = PollStatus.Deleted) should
     /// return 404 Not Found, as deleted polls are invisible to the public API.
     /// </summary>
     [Fact]
@@ -587,7 +593,7 @@ public class PollsControllerTests
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<RcvDbContext>();
         var poll = await db.Polls.FindAsync(pollId);
-        poll!.Status = "Deleted";
+        poll!.Status = PollStatus.Deleted;
         await db.SaveChangesAsync();
 
         var client = factory.CreateUnauthenticatedClient();
@@ -689,10 +695,29 @@ public class PollsApiFactory : WebApplicationFactory<Program>
     /// <param name="user">The user whose identity should be embedded in the token.</param>
     public HttpClient CreateAuthenticatedClient(User user)
     {
-        var client = CreateClient();
+        var client = CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+        });
         var jwt = CreateJwtForUser(user);
-        client.DefaultRequestHeaders.Add("Cookie", $"rcv_jwt={jwt}");
+        AddBrowserSecurityHeaders(client, jwt);
         return client;
+    }
+
+    private static void AddBrowserSecurityHeaders(HttpClient client, string jwt)
+    {
+        client.DefaultRequestHeaders.Add("Cookie", $"rcv_jwt={jwt}");
+        var response = client.GetAsync("/api/auth/csrf").GetAwaiter().GetResult();
+        response.EnsureSuccessStatusCode();
+        var payload = JsonDocument.Parse(
+            response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+        var requestToken = payload.RootElement.GetProperty("token").GetString()!;
+        var cookie = response.Headers.GetValues("Set-Cookie")
+            .Single(value => value.StartsWith("rcv_xsrf=", StringComparison.Ordinal))
+            .Split(';')[0];
+        client.DefaultRequestHeaders.Remove("Cookie");
+        client.DefaultRequestHeaders.Add("Cookie", $"rcv_jwt={jwt}; {cookie}");
+        client.DefaultRequestHeaders.Add("X-XSRF-TOKEN", requestToken);
     }
 
     /// <summary>Creates an <see cref="HttpClient"/> with no authentication credentials.</summary>
@@ -769,7 +794,7 @@ public class PollsApiFactory : WebApplicationFactory<Program>
             Id = pollId,
             Title = title,
             CreatorId = creatorId,
-            Status = "Active",
+            Status = PollStatus.Active,
             CreatedAt = DateTime.UtcNow,
             Options = new List<PollOption>
             {

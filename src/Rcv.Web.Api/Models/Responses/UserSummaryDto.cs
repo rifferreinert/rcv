@@ -5,6 +5,5 @@ namespace Rcv.Web.Api.Models.Responses;
 /// </summary>
 public record UserSummaryDto(
     Guid Id,
-    string? Email,
     string? DisplayName
 );

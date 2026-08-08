@@ -48,7 +48,7 @@ Set nested ASP.NET Core keys with double underscores in App Service:
 | `Authentication__Google__ClientSecret` | Google OAuth client secret |
 | `Authentication__Microsoft__ClientId` | Microsoft OAuth client ID |
 | `Authentication__Microsoft__ClientSecret` | Microsoft OAuth client secret |
-| `Application__PublicUrl` | Canonical HTTPS application origin |
+| `Authentication__OAuth__ReturnUrl` | Trusted frontend destination after login (`/dashboard` for same-origin production) |
 
 Do not configure Slack, Teams, or Apple credentials for Phase 2.
 
@@ -63,7 +63,15 @@ https://rcv.example.com/api/auth/signin/google
 https://rcv.example.com/api/auth/signin/microsoft
 ```
 
-Also register the development callback URLs from `launchSettings.json` when testing providers locally. Redirect destinations accepted by the API must remain local application paths; do not add arbitrary external return URLs.
+For local development through the Vite proxy, register:
+
+```text
+http://localhost:5041/api/auth/signin/google
+http://localhost:5041/api/auth/signin/microsoft
+```
+
+The proxy rewrites the request origin to the API origin so the generated callback matches these URLs. Redirect destinations accepted by the API must remain local application paths; do not add arbitrary external return URLs.
+Development configuration redirects the completed login to `http://localhost:5173/dashboard`; production uses the same-origin `/dashboard` path.
 
 ## Build the Deployment Artifact
 
@@ -151,4 +159,3 @@ Review App Service logs for startup failures without logging cookies, JWTs, OAut
 2. Prefer forward-compatible database migrations so the previous application remains usable.
 3. If a schema rollback is unavoidable, restore Azure SQL to a new database and repoint the application after validating data.
 4. Re-run health and critical user-flow checks.
-

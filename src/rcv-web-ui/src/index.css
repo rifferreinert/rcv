@@ -1,3 +1,62 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #17201c;
+  --color-ink-700: #3c4943;
+  --color-ink-500: #68746e;
+  --color-cream-50: #fbfaf5;
+  --color-cream-100: #f3f0e6;
+  --color-sage-100: #dfece3;
+  --color-sage-500: #43815c;
+  --color-sage-700: #286041;
+  --color-coral-500: #dc684e;
+  --font-sans: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-ink-950/15;
+  }
+
+  body {
+    @apply m-0 min-w-80 bg-cream-50 font-sans text-ink-950 antialiased;
+  }
+
+  button, a, input, textarea, select {
+    @apply focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-sage-500;
+  }
+
+  button {
+    @apply cursor-pointer disabled:cursor-not-allowed;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .card {
+    @apply rounded-2xl border bg-white p-5 shadow-sm;
+  }
+
+  .btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl bg-sage-700 px-4 py-2 font-semibold text-white transition hover:bg-sage-500 disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border bg-white px-4 py-2 font-semibold transition hover:bg-cream-100 disabled:opacity-50;
+  }
+
+  .btn-danger {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl bg-red-700 px-4 py-2 font-semibold text-white transition hover:bg-red-600 disabled:opacity-50;
+  }
+
+  .field {
+    @apply mt-1 block min-h-11 w-full rounded-xl border bg-white px-3 py-2 text-base;
+  }
+
+  .label {
+    @apply block font-semibold;
+  }
+}

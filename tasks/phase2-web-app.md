@@ -1,6 +1,17 @@
 # Phase 2: Basic Web App Implementation Plan
 
-> **Document status**: Target-state architecture and original implementation plan. It is not a record of completed functionality. As of 2026-08-07, authentication, poll management, and voting APIs exist; results and the product frontend are not implemented. See `tasks-phase2-web-app.md` for current status.
+> **Document status**: Historical initial architecture and implementation plan. The repository implementation of the agreed Phase 2 MVP was completed on 2026-08-08. The body below preserves the original proposal and includes superseded details such as additional identity providers, public discovery, and separate live-results routes. See `tasks-phase2-web-app.md` for authoritative completion status and `../docs/API.md` for the delivered API.
+
+## Delivered Phase 2 Scope
+
+- Google and Microsoft OAuth with HTTP-only JWT cookies and antiforgery protection
+- Unlisted direct-link polls and an authenticated creator dashboard
+- Lazy deadline closure, manual closure, soft deletion, and vote revisions
+- Aggregate-only deterministic instant-runoff results with live/final visibility controls
+- Responsive React SPA with accessible ranking and results tables/charts
+- One combined ASP.NET Core/SPA App Service artifact, automated CI, coverage gates, and EF migration scripts
+
+Azure provisioning, production secrets, applying migrations to a real Azure SQL database, and live provider verification remain external release activities.
 
 ## Quick Reference
 

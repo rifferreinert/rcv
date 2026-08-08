@@ -1,37 +1,179 @@
-name: Build and Test
+name: Build, Test, and Package
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  backend:
+    name: Backend
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '9.0.x'
-        
-    - name: Restore dependencies
-      run: dotnet restore
-      
-    - name: Build
-      run: dotnet build --no-restore --configuration Release
-      
-    - name: Test
-      run: dotnet test --no-build --configuration Release --verbosity normal
-      
-    - name: Pack NuGet
-      run: dotnet pack --no-build --configuration Release --output ./artifacts
-      
-    - name: Upload NuGet artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: nuget-package
-        path: ./artifacts/*.nupkg
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test core with coverage threshold
+        run: >
+          dotnet test tests/Rcv.Core.Tests/Rcv.Core.Tests.csproj
+          --no-build
+          --configuration Release
+          /p:CollectCoverage=true
+          /p:CoverletOutputFormat=cobertura
+          /p:CoverletOutput=../../artifacts/coverage/core/
+          /p:Threshold=80
+          /p:ThresholdType=line
+          /p:ThresholdStat=total
+
+      - name: Test API with coverage threshold
+        run: >
+          dotnet test tests/Rcv.Web.Api.Tests/Rcv.Web.Api.Tests.csproj
+          --no-build
+          --configuration Release
+          /p:CollectCoverage=true
+          /p:CoverletOutputFormat=cobertura
+          /p:CoverletOutput=../../artifacts/coverage/api/
+          /p:Exclude="[Rcv.Core]*"
+          /p:ExcludeByFile="**/Migrations/*.cs"
+          /p:Threshold=80
+          /p:ThresholdType=line
+          /p:ThresholdStat=total
+
+      - name: Generate idempotent migration script
+        run: >
+          dotnet ef migrations script
+          --project src/Rcv.Web.Api
+          --startup-project src/Rcv.Web.Api
+          --configuration Release
+          --no-build
+          --idempotent
+          --output artifacts/migrate.sql
+
+      - name: Upload backend reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-reports
+          path: |
+            artifacts/coverage/
+            artifacts/migrate.sql
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: src/rcv-web-ui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/rcv-web-ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Run component tests
+        run: npm run test:coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser smoke tests
+        run: npm run test:e2e
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: src/rcv-web-ui/coverage/
+
+  package:
+    name: Package
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/rcv-web-ui/package-lock.json
+
+      - name: Restore dependencies
+        run: |
+          dotnet restore
+          npm ci --prefix src/rcv-web-ui
+
+      - name: Build frontend
+        run: npm run build --prefix src/rcv-web-ui
+
+      - name: Publish combined application
+        run: >
+          dotnet publish src/Rcv.Web.Api/Rcv.Web.Api.csproj
+          --configuration Release
+          --no-restore
+          --output artifacts/app
+
+      - name: Pack Rcv.Core
+        run: >
+          dotnet pack src/Rcv.Core/Rcv.Core.csproj
+          --configuration Release
+          --no-restore
+          --output artifacts/nuget
+
+      - name: Upload App Service artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rcv-web-app
+          path: artifacts/app/
+
+      - name: Upload NuGet artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rcv-core-package
+          path: artifacts/nuget/*.nupkg

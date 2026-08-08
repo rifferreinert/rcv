@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Rcv.Web.Api.Models.Requests;
 using Rcv.Web.Api.Services;
 using System.Security.Claims;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Rcv.Web.Api.Controllers;
 
@@ -32,33 +33,17 @@ public class VotesController : ControllerBase
     /// <returns>The vote with 201 Created (new) or 200 OK (updated).</returns>
     [HttpPost]
     [Authorize]
+    [EnableRateLimiting("votes")]
     public async Task<IActionResult> CastVote(Guid pollId, [FromBody] CastVoteRequest request)
     {
         var userId = GetCurrentUserId();
         if (userId is null)
             return Unauthorized();
 
-        try
-        {
-            var (vote, isNew) = await _votingService.CastVoteAsync(pollId, userId.Value, request.RankedOptionIds);
-
-            if (isNew)
-                return CreatedAtAction(nameof(GetMyVote), new { pollId }, vote);
-
-            return Ok(vote);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { error = ex.Message });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var (vote, isNew) = await _votingService.CastVoteAsync(pollId, userId.Value, request.RankedOptionIds);
+        return isNew
+            ? CreatedAtAction(nameof(GetMyVote), new { pollId }, vote)
+            : Ok(vote);
     }
 
     /// <summary>
@@ -74,17 +59,7 @@ public class VotesController : ControllerBase
         if (userId is null)
             return Unauthorized();
 
-        try
-        {
-            var vote = await _votingService.GetUserVoteAsync(pollId, userId.Value);
-            if (vote is null)
-                return NotFound();
-            return Ok(vote);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        return Ok(await _votingService.GetUserVoteAsync(pollId, userId.Value));
     }
 
     /// <summary>
@@ -96,15 +71,7 @@ public class VotesController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetVoteCount(Guid pollId)
     {
-        try
-        {
-            var count = await _votingService.GetVoteCountAsync(pollId);
-            return Ok(count);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        return Ok(await _votingService.GetVoteCountAsync(pollId));
     }
 
     // -----------------------------------------------------------------------

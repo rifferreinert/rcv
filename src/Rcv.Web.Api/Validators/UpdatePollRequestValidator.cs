@@ -36,5 +36,9 @@ public class UpdatePollRequestValidator : AbstractValidator<UpdatePollRequest>
         RuleFor(x => x.ClosesAt)
             .Must(d => d == null || d.Value > DateTime.UtcNow)
             .WithMessage("ClosesAt must be a future date/time.");
+
+        RuleFor(x => x)
+            .Must(x => !x.RemoveClosesAt || x.ClosesAt is null)
+            .WithMessage("ClosesAt cannot be provided when RemoveClosesAt is true.");
     }
 }

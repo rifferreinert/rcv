@@ -27,8 +27,14 @@ namespace Rcv.Web.Api.Tests.Controllers;
 /// </summary>
 public class VotesControllerTests
 {
-    private static readonly JsonSerializerOptions JsonOptions =
-        new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        return options;
+    }
 
     // -----------------------------------------------------------------------
     // POST /api/polls/{pollId}/votes
@@ -79,7 +85,7 @@ public class VotesControllerTests
         await using var factory = new VotesApiFactory();
         var user = MakeUser(Guid.NewGuid());
         await factory.SeedUserAsync(user);
-        var (pollId, optionIds) = await factory.SeedPollAsync(user.Id, status: "Closed");
+        var (pollId, optionIds) = await factory.SeedPollAsync(user.Id, status: PollStatus.Closed);
         var client = factory.CreateAuthenticatedClient(user);
 
         var request = new CastVoteRequest { RankedOptionIds = optionIds };
@@ -192,13 +198,14 @@ public class VotesControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.OK,
             "fetching an existing vote should return 200 OK");
 
-        var vote = await DeserializeAsync<VoteResponse>(response);
+        var vote = await DeserializeAsync<VoteStatusResponse>(response);
         vote.Should().NotBeNull();
-        vote!.PollId.Should().Be(pollId);
+        vote!.HasVoted.Should().BeTrue();
+        vote.RankedOptionIds.Should().BeEquivalentTo(optionIds, opts => opts.WithStrictOrdering());
     }
 
     [Fact]
-    public async Task GetMyVote_WhenNoVote_Returns404()
+    public async Task GetMyVote_WhenNoVote_Returns200WithExplicitStatus()
     {
         await using var factory = new VotesApiFactory();
         var user = MakeUser(Guid.NewGuid());
@@ -208,8 +215,10 @@ public class VotesControllerTests
 
         var response = await client.GetAsync($"/api/polls/{pollId}/votes/me");
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound,
-            "fetching a non-existent vote should return 404");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var status = await DeserializeAsync<VoteStatusResponse>(response);
+        status!.HasVoted.Should().BeFalse();
+        status.CanChange.Should().BeFalse();
     }
 
     [Fact]
@@ -344,10 +353,29 @@ public class VotesApiFactory : WebApplicationFactory<Program>
 
     public HttpClient CreateAuthenticatedClient(User user)
     {
-        var client = CreateClient();
+        var client = CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+        });
         var jwt = CreateJwtForUser(user);
-        client.DefaultRequestHeaders.Add("Cookie", $"rcv_jwt={jwt}");
+        AddBrowserSecurityHeaders(client, jwt);
         return client;
+    }
+
+    private static void AddBrowserSecurityHeaders(HttpClient client, string jwt)
+    {
+        client.DefaultRequestHeaders.Add("Cookie", $"rcv_jwt={jwt}");
+        var response = client.GetAsync("/api/auth/csrf").GetAwaiter().GetResult();
+        response.EnsureSuccessStatusCode();
+        var payload = JsonDocument.Parse(
+            response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+        var requestToken = payload.RootElement.GetProperty("token").GetString()!;
+        var cookie = response.Headers.GetValues("Set-Cookie")
+            .Single(value => value.StartsWith("rcv_xsrf=", StringComparison.Ordinal))
+            .Split(';')[0];
+        client.DefaultRequestHeaders.Remove("Cookie");
+        client.DefaultRequestHeaders.Add("Cookie", $"rcv_jwt={jwt}; {cookie}");
+        client.DefaultRequestHeaders.Add("X-XSRF-TOKEN", requestToken);
     }
 
     public HttpClient CreateUnauthenticatedClient() => CreateClient();
@@ -397,7 +425,7 @@ public class VotesApiFactory : WebApplicationFactory<Program>
     public async Task<(Guid PollId, List<Guid> OptionIds)> SeedPollAsync(
         Guid creatorId,
         string title = "Test Poll",
-        string status = "Active")
+        PollStatus status = PollStatus.Active)
     {
         var pollId = Guid.NewGuid();
         var optionA = Guid.NewGuid();

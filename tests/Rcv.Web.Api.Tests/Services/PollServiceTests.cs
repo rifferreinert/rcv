@@ -80,9 +80,8 @@ public class PollServiceTests
         result.Should().NotBeNull();
         result.Title.Should().Be(request.Title);
         result.Description.Should().Be(request.Description);
-        result.Status.Should().Be("Active");
+        result.Status.Should().Be(PollStatus.Active);
         result.Creator.Id.Should().Be(user.Id);
-        result.Creator.Email.Should().Be(user.Email);
         result.Creator.DisplayName.Should().Be(user.DisplayName);
         result.Options.Should().HaveCount(3);
     }
@@ -172,7 +171,7 @@ public class PollServiceTests
 
         // Soft-delete the poll directly in the DB
         var poll = await context.Polls.FindAsync(created.Id);
-        poll!.Status = "Deleted";
+        poll!.Status = PollStatus.Deleted;
         await context.SaveChangesAsync();
 
         var result = await service.GetPollByIdAsync(created.Id);
@@ -214,7 +213,7 @@ public class PollServiceTests
 
         // Soft-delete the second poll
         var entity = await context.Polls.FindAsync(poll2.Id);
-        entity!.Status = "Deleted";
+        entity!.Status = PollStatus.Deleted;
         await context.SaveChangesAsync();
 
         var result = await service.GetPollsByCreatorAsync(user.Id, page: 1, pageSize: 10);
@@ -242,7 +241,7 @@ public class PollServiceTests
             Id = Guid.NewGuid(),
             Title = "Closed Poll",
             CreatorId = user.Id,
-            Status = "Closed",
+            Status = PollStatus.Closed,
             CreatedAt = DateTime.UtcNow,
         };
         context.Polls.Add(closedPoll);
@@ -253,13 +252,13 @@ public class PollServiceTests
             Id = Guid.NewGuid(),
             Title = "Deleted Poll",
             CreatorId = user.Id,
-            Status = "Deleted",
+            Status = PollStatus.Deleted,
             CreatedAt = DateTime.UtcNow,
         };
         context.Polls.Add(deletedPoll);
         await context.SaveChangesAsync();
 
-        var result = await service.GetActivePollsAsync(page: 1, pageSize: 10);
+        var result = await service.GetPollsByCreatorAsync(user.Id, page: 1, pageSize: 10, PollStatus.Active);
 
         result.Items.Should().HaveCount(1);
         result.Items[0].Id.Should().Be(active.Id);
@@ -275,7 +274,7 @@ public class PollServiceTests
         for (int i = 0; i < 5; i++)
             await service.CreatePollAsync(user.Id, BuildCreatePollRequest());
 
-        var result = await service.GetActivePollsAsync(page: 1, pageSize: 2);
+        var result = await service.GetPollsByCreatorAsync(user.Id, page: 1, pageSize: 2, PollStatus.Active);
 
         result.Items.Should().HaveCount(2);
         result.TotalCount.Should().Be(5);
@@ -299,7 +298,7 @@ public class PollServiceTests
         var result = await service.ClosePollAsync(created.Id, user.Id);
         var after = DateTime.UtcNow;
 
-        result.Status.Should().Be("Closed");
+        result.Status.Should().Be(PollStatus.Closed);
         result.ClosedAt.Should().NotBeNull();
         result.ClosedAt.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
     }
@@ -348,7 +347,7 @@ public class PollServiceTests
         await service.DeletePollAsync(created.Id, user.Id);
 
         var poll = await context.Polls.FindAsync(created.Id);
-        poll!.Status.Should().Be("Deleted");
+        poll!.Status.Should().Be(PollStatus.Deleted);
     }
 
     [Fact]
@@ -402,6 +401,24 @@ public class PollServiceTests
     }
 
     [Fact]
+    public async Task UpdatePollAsync_RemoveClosesAt_ClearsExistingDeadline()
+    {
+        using var context = CreateInMemoryContext();
+        var user = await CreateTestUser(context);
+        var service = CreateService(context);
+        var request = BuildCreatePollRequest();
+        request.ClosesAt = DateTime.UtcNow.AddDays(1);
+        var created = await service.CreatePollAsync(user.Id, request);
+
+        var result = await service.UpdatePollAsync(
+            created.Id,
+            user.Id,
+            new UpdatePollRequest { RemoveClosesAt = true });
+
+        result.ClosesAt.Should().BeNull();
+    }
+
+    [Fact]
     public async Task UpdatePollAsync_AfterVotesAreCast_ThrowsInvalidOperationException()
     {
         using var context = CreateInMemoryContext();
@@ -447,7 +464,7 @@ public class PollServiceTests
     // -----------------------------------------------------------------------
 
     [Fact]
-    public async Task CreatePollAsync_PersistsSettings_ClosesAtIsResultsPublicIsVotingPublic()
+    public async Task CreatePollAsync_PersistsSettings_ClosesAtAndIsResultsPublic()
     {
         using var context = CreateInMemoryContext();
         var user = await CreateTestUser(context);
@@ -459,14 +476,12 @@ public class PollServiceTests
             Options = new List<string> { "A", "B" },
             ClosesAt = closesAt,
             IsResultsPublic = false,
-            IsVotingPublic = true,
         };
 
         var result = await service.CreatePollAsync(user.Id, request);
 
         result.ClosesAt.Should().BeCloseTo(closesAt, precision: TimeSpan.FromSeconds(1));
         result.IsResultsPublic.Should().BeFalse();
-        result.IsVotingPublic.Should().BeTrue();
     }
 
     // -----------------------------------------------------------------------
@@ -482,13 +497,13 @@ public class PollServiceTests
         var created = await service.CreatePollAsync(user.Id, BuildCreatePollRequest());
 
         var poll = await context.Polls.FindAsync(created.Id);
-        poll!.Status = "Closed";
+        poll!.Status = PollStatus.Closed;
         await context.SaveChangesAsync();
 
         var result = await service.GetPollByIdAsync(created.Id);
 
         result.Should().NotBeNull();
-        result!.Status.Should().Be("Closed");
+        result!.Status.Should().Be(PollStatus.Closed);
     }
 
     // -----------------------------------------------------------------------
@@ -506,7 +521,7 @@ public class PollServiceTests
         var poll2 = await service.CreatePollAsync(user.Id, BuildCreatePollRequest());
 
         var entity = await context.Polls.FindAsync(poll2.Id);
-        entity!.Status = "Closed";
+        entity!.Status = PollStatus.Closed;
         await context.SaveChangesAsync();
 
         var result = await service.GetPollsByCreatorAsync(user.Id, page: 1, pageSize: 10);

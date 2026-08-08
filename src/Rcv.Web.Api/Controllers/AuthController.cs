@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Rcv.Web.Api.Models.Responses;
 using Rcv.Web.Api.Services;
 using System.Security.Claims;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Rcv.Web.Api.Controllers;
 
@@ -12,6 +13,7 @@ namespace Rcv.Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting("auth")]
 public class AuthController : ControllerBase
 {
     // Maps lowercase provider names in the URL to the scheme name registered with AddGoogle/AddMicrosoftAccount
@@ -24,14 +26,23 @@ public class AuthController : ControllerBase
     private const string JwtCookieName = "rcv_jwt";
 
     private readonly IAuthService _authService;
+    private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
 
     /// <summary>
     /// Initializes a new instance of <see cref="AuthController"/>.
     /// </summary>
     /// <param name="authService">The authentication service.</param>
-    public AuthController(IAuthService authService)
+    /// <param name="configuration">Application redirect and CORS configuration.</param>
+    /// <param name="environment">The current hosting environment.</param>
+    public AuthController(
+        IAuthService authService,
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
     {
         _authService = authService;
+        _configuration = configuration;
+        _environment = environment;
     }
 
     /// <summary>
@@ -39,15 +50,20 @@ public class AuthController : ControllerBase
     /// The browser is redirected to the provider's consent screen.
     /// </summary>
     /// <param name="provider">The OAuth provider name (e.g., "google", "microsoft").</param>
+    /// <param name="returnUrl">Optional trusted frontend destination after authentication.</param>
     [HttpGet("login/{provider}")]
-    public IActionResult Login(string provider)
+    public IActionResult Login(string provider, [FromQuery] string? returnUrl = null)
     {
         if (!SupportedProviders.TryGetValue(provider, out var scheme))
-            return BadRequest($"Unknown provider '{provider}'. Supported: {string.Join(", ", SupportedProviders.Keys)}");
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Unknown OAuth provider",
+                detail: $"Supported providers: {string.Join(", ", SupportedProviders.Keys)}.");
 
         // After the provider redirects back, ASP.NET will call our /callback route
         var callbackUrl = Url.Action(nameof(Callback), new { provider })!;
         var properties = new AuthenticationProperties { RedirectUri = callbackUrl };
+        properties.Items["returnUrl"] = GetSafeReturnUrl(returnUrl);
 
         return Challenge(properties, scheme);
     }
@@ -58,16 +74,21 @@ public class AuthController : ControllerBase
     /// then redirects the browser to the frontend dashboard.
     /// </summary>
     /// <param name="provider">The OAuth provider name.</param>
+    /// <returns>A redirect to the configured frontend destination.</returns>
     [HttpGet("callback/{provider}")]
     public async Task<IActionResult> Callback(string provider)
     {
         if (!SupportedProviders.ContainsKey(provider))
-            return BadRequest($"Unknown provider '{provider}'.");
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Unknown OAuth provider");
 
         // Authenticate using the temporary external cookie set by the OAuth middleware
         var result = await HttpContext.AuthenticateAsync("External");
         if (!result.Succeeded)
-            return Unauthorized("OAuth authentication failed.");
+            return Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "OAuth authentication failed");
 
         // Extract identity claims provided by the OAuth provider
         var externalId = result.Principal?.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -85,8 +106,9 @@ public class AuthController : ControllerBase
         Response.Cookies.Append(JwtCookieName, jwt, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = !_environment.IsDevelopment(),
             SameSite = SameSiteMode.Lax,
+            Path = "/",
             Expires = DateTimeOffset.UtcNow.AddDays(7),
         });
 
@@ -94,20 +116,24 @@ public class AuthController : ControllerBase
         await HttpContext.SignOutAsync("External");
 
         // Redirect the browser back to the frontend
-        return Redirect("/dashboard");
+        string? returnUrl = null;
+        result.Properties?.Items.TryGetValue("returnUrl", out returnUrl);
+        return Redirect(GetSafeReturnUrl(returnUrl));
     }
 
     /// <summary>
     /// Logs the user out by expiring the JWT cookie.
     /// </summary>
     [HttpPost("logout")]
+    [Authorize]
     public IActionResult Logout()
     {
         Response.Cookies.Append(JwtCookieName, string.Empty, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = !_environment.IsDevelopment(),
             SameSite = SameSiteMode.Lax,
+            Path = "/",
             Expires = DateTimeOffset.UnixEpoch, // Far in the past → browser deletes the cookie
         });
 
@@ -134,4 +160,43 @@ public class AuthController : ControllerBase
 
         return Ok(response);
     }
+
+    private string GetSafeReturnUrl(string? requested)
+    {
+        var configured = _configuration["Authentication:OAuth:ReturnUrl"] ?? "/dashboard";
+        var candidate = string.IsNullOrWhiteSpace(requested) ? configured : requested;
+
+        if (IsSafeReturnUrl(candidate))
+            return candidate;
+
+        return IsSafeReturnUrl(configured) ? configured : "/dashboard";
+    }
+
+    private bool IsSafeReturnUrl(string candidate)
+    {
+        if (IsSafeRelativeUrl(candidate))
+            return true;
+
+        if (Uri.TryCreate(candidate, UriKind.Absolute, out var absolute) &&
+            (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps))
+        {
+            var allowedOrigins = _configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                ?? Array.Empty<string>();
+            if (allowedOrigins.Any(origin =>
+                Uri.TryCreate(origin, UriKind.Absolute, out var allowed) &&
+                string.Equals(allowed.Scheme, absolute.Scheme, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(allowed.Host, absolute.Host, StringComparison.OrdinalIgnoreCase) &&
+                allowed.Port == absolute.Port))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsSafeRelativeUrl(string url) =>
+        Uri.TryCreate(url, UriKind.Relative, out _) &&
+        url.StartsWith('/') &&
+        !url.StartsWith("//", StringComparison.Ordinal) &&
+        !url.Contains('\\') &&
+        !url.Any(char.IsControl);
 }

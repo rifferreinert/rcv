@@ -25,7 +25,7 @@ Authentication uses an HTTP-only JWT cookie. The SPA obtains an antiforgery toke
 | `DELETE` | `/api/polls/{id}` | Creator and antiforgery-protected |
 | `POST` | `/api/polls/{id}/close` | Creator and antiforgery-protected |
 
-The list endpoint supports `status`, `page`, and `pageSize`. Poll updates are rejected after voting begins. `ClosesAt` is enforced as an effective closure deadline.
+The list endpoint supports `status`, `page`, and `pageSize`. Poll updates are rejected after voting begins. `ClosesAt` is enforced as an effective closure deadline; updates use `removeClosesAt: true` to clear an existing deadline.
 
 ## Votes
 
@@ -52,4 +52,3 @@ Result states:
 - `Final`: results from a closed poll
 
 Errors use RFC 7807 `application/problem+json`.
-

@@ -4,6 +4,8 @@ using Rcv.Web.Api.Models.Requests;
 using Rcv.Web.Api.Models.Responses;
 using Rcv.Web.Api.Services;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
+using Rcv.Web.Api.Data.Entities;
 
 namespace Rcv.Web.Api.Controllers;
 
@@ -60,25 +62,27 @@ public class PollsController : ControllerBase
     /// <summary>
     /// Lists polls with optional filtering and pagination.
     /// </summary>
-    /// <param name="creatorId">Optional: filter to a specific creator's polls.</param>
+    /// <param name="status">Optional lifecycle status filter.</param>
     /// <param name="page">Page number (1-based, default 1).</param>
     /// <param name="pageSize">Items per page (default 20).</param>
     /// <returns>A paginated list of polls.</returns>
     [HttpGet]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> ListPolls(
-        [FromQuery] Guid? creatorId = null,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] PollStatus? status = null,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(1, 100)] int pageSize = 20)
     {
-        PollListResponse result;
-
-        if (creatorId.HasValue)
-            result = await _pollService.GetPollsByCreatorAsync(creatorId.Value, page, pageSize);
-        else
-            result = await _pollService.GetActivePollsAsync(page, pageSize);
-
-        return Ok(result);
+        var userId = GetCurrentUserId();
+        if (userId is null)
+            return Unauthorized();
+        if (status.HasValue &&
+            (!Enum.IsDefined(status.Value) || status == PollStatus.Deleted))
+        {
+            ModelState.AddModelError(nameof(status), "Status must be Active or Closed.");
+            return ValidationProblem(ModelState);
+        }
+        return Ok(await _pollService.GetPollsByCreatorAsync(userId.Value, page, pageSize, status));
     }
 
     /// <summary>
@@ -95,23 +99,7 @@ public class PollsController : ControllerBase
         if (userId is null)
             return Unauthorized();
 
-        try
-        {
-            var poll = await _pollService.UpdatePollAsync(id, userId.Value, request);
-            return Ok(poll);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return StatusCode(403);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { error = ex.Message });
-        }
+        return Ok(await _pollService.UpdatePollAsync(id, userId.Value, request));
     }
 
     /// <summary>
@@ -127,19 +115,8 @@ public class PollsController : ControllerBase
         if (userId is null)
             return Unauthorized();
 
-        try
-        {
-            await _pollService.DeletePollAsync(id, userId.Value);
-            return NoContent();
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return StatusCode(403);
-        }
+        await _pollService.DeletePollAsync(id, userId.Value);
+        return NoContent();
     }
 
     /// <summary>
@@ -155,23 +132,7 @@ public class PollsController : ControllerBase
         if (userId is null)
             return Unauthorized();
 
-        try
-        {
-            var poll = await _pollService.ClosePollAsync(id, userId.Value);
-            return Ok(poll);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return StatusCode(403);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { error = ex.Message });
-        }
+        return Ok(await _pollService.ClosePollAsync(id, userId.Value));
     }
 
     // -----------------------------------------------------------------------

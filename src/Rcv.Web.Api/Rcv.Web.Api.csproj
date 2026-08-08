@@ -18,11 +18,28 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Rcv.Core\Rcv.Core.csproj" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <SpaDistDir>$(MSBuildProjectDirectory)/../rcv-web-ui/dist</SpaDistDir>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(SpaDistDir)/index.html')">
+    <Content Include="$(SpaDistDir)/**/*"
+             Link="wwwroot/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="EnsureSpaDistributionExists" BeforeTargets="ComputeFilesToPublish">
+    <Error Condition="!Exists('$(SpaDistDir)/index.html')"
+           Text="SPA publish assets are missing. Build src/rcv-web-ui first; expected $(SpaDistDir)/index.html." />
+  </Target>
 
 </Project>

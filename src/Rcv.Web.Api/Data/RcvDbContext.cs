@@ -72,13 +72,12 @@ public class RcvDbContext : DbContext
                   .HasDefaultValueSql("GETUTCDATE()");
 
             entity.Property(p => p.Status)
-                  .HasDefaultValue("Active");
+                  .HasConversion<string>()
+                  .HasMaxLength(20)
+                  .HasDefaultValue(PollStatus.Active);
 
             entity.Property(p => p.IsResultsPublic)
                   .HasDefaultValue(true);
-
-            entity.Property(p => p.IsVotingPublic)
-                  .HasDefaultValue(false);
 
             // Relationships
             entity.HasOne(p => p.Creator)

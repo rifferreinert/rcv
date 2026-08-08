@@ -4,7 +4,7 @@ using Rcv.Web.Api.Data;
 using Rcv.Web.Api.Data.Entities;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using Rcv.Web.Api.Infrastructure;
 
 namespace Rcv.Web.Api.Services;
 
@@ -57,16 +57,14 @@ public class AuthService : IAuthService
     public string GenerateJwtToken(User user)
     {
         var jwtSection = _configuration.GetSection("Authentication:Jwt");
-        var secretKey = jwtSection["SecretKey"]
-            ?? throw new InvalidOperationException("JWT SecretKey is not configured.");
+        var signingKey = JwtSigningKeyValidator.CreateSecurityKey(jwtSection["SecretKey"]);
         var issuer = jwtSection["Issuer"]
             ?? throw new InvalidOperationException("JWT Issuer is not configured.");
         var audience = jwtSection["Audience"]
             ?? throw new InvalidOperationException("JWT Audience is not configured.");
         var expirationDays = int.Parse(jwtSection["ExpirationDays"] ?? "7");
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {

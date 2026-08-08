@@ -279,6 +279,48 @@ public class AuthServiceTests
     }
 
     [Fact]
+    public void GenerateJwtToken_ThrowsWhenSecretKeyIsCheckedInPlaceholder()
+    {
+        using var context = CreateInMemoryContext();
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:Jwt:SecretKey"] = "{REPLACE_IN_PRODUCTION}",
+                ["Authentication:Jwt:Issuer"] = "TestIssuer",
+                ["Authentication:Jwt:Audience"] = "TestAudience",
+            })
+            .Build();
+        var service = new AuthService(context, config);
+        var user = new User { Id = Guid.NewGuid(), ExternalId = "x", Provider = "Google" };
+
+        var act = () => service.GenerateJwtToken(user);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*SecretKey*placeholder*");
+    }
+
+    [Fact]
+    public void GenerateJwtToken_ThrowsWhenSecretKeyIsShorterThan32Bytes()
+    {
+        using var context = CreateInMemoryContext();
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:Jwt:SecretKey"] = new string('a', 31),
+                ["Authentication:Jwt:Issuer"] = "TestIssuer",
+                ["Authentication:Jwt:Audience"] = "TestAudience",
+            })
+            .Build();
+        var service = new AuthService(context, config);
+        var user = new User { Id = Guid.NewGuid(), ExternalId = "x", Provider = "Google" };
+
+        var act = () => service.GenerateJwtToken(user);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*at least 32 bytes*31 bytes*");
+    }
+
+    [Fact]
     public void GenerateJwtToken_ThrowsWhenIssuerMissing()
     {
         using var context = CreateInMemoryContext();

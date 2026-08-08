@@ -20,6 +20,4 @@ public class CreatePollRequest
     /// <summary>Whether live results are visible while voting is in progress. Defaults to true.</summary>
     public bool IsResultsPublic { get; set; } = true;
 
-    /// <summary>Whether individual votes are public (false = anonymous). Defaults to false.</summary>
-    public bool IsVotingPublic { get; set; } = false;
 }

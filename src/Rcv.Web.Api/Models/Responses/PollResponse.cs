@@ -1,3 +1,5 @@
+using Rcv.Web.Api.Data.Entities;
+
 namespace Rcv.Web.Api.Models.Responses;
 
 /// <summary>
@@ -21,7 +23,7 @@ public class PollResponse
     public List<PollOptionDto> Options { get; set; } = new();
 
     /// <summary>Current status: "Active", "Closed", or "Deleted".</summary>
-    public string Status { get; set; } = string.Empty;
+    public PollStatus Status { get; set; }
 
     /// <summary>When the poll was created.</summary>
     public DateTime CreatedAt { get; set; }
@@ -34,9 +36,6 @@ public class PollResponse
 
     /// <summary>Whether live results are visible while voting is in progress.</summary>
     public bool IsResultsPublic { get; set; }
-
-    /// <summary>Whether individual votes are public (false = anonymous).</summary>
-    public bool IsVotingPublic { get; set; }
 
     /// <summary>Total number of votes cast so far.</summary>
     public int VoteCount { get; set; }

@@ -1,29 +1,35 @@
 # Ranked Choice Voting Platform
 
-A .NET ranked choice voting platform under development. The repository contains a reusable instant-runoff voting library, an ASP.NET Core API, and a React frontend scaffold.
+A deployable ranked choice voting web application with a reusable instant-runoff voting library, an ASP.NET Core API, and a React frontend.
 
 ## Current Status
 
-Last updated: 2026-08-07
+Last updated: 2026-08-08
 
 | Area | Status |
 |---|---|
-| `Rcv.Core` voting library | Complete and tested |
-| Authentication API | Google and Microsoft OAuth implemented; manual provider testing remains |
-| Poll management API | Implemented except the documented status list filter |
-| Voting API | Implemented; automatic enforcement of `ClosesAt` remains |
-| Results API and `Rcv.Core` integration | Not implemented |
-| React web application | Vite starter only |
-| Deployment and Slack/Teams integrations | Not implemented |
+| `Rcv.Core` voting library | Complete; 29 automated tests |
+| Authentication and API security | Google/Microsoft OAuth, HTTP-only JWT cookies, antiforgery, rate limiting, ProblemDetails, logging, and health checks implemented |
+| Poll management and voting | Complete for the Phase 2 MVP, including unlisted dashboard pagination, lazy deadline closure, and vote revisions |
+| Aggregate results | Complete with deterministic `Rcv.Core` calculation, live/final visibility rules, and immutable final-result caching |
+| React web application | Complete responsive SPA with authentication, poll management, accessible ranking, and results visualization |
+| Quality and delivery | 139 API tests, 9 frontend component tests, 2 Playwright smoke tests, coverage gates, EF validation, and a combined App Service artifact |
+| External release work | Azure resources, production secrets, database migration, and real Google/Microsoft provider verification |
 
 See [`tasks/tasks-phase2-web-app.md`](tasks/tasks-phase2-web-app.md) for the authoritative implementation tracker. The PRD and Phase 2 plan describe the intended product and target architecture, not completed functionality.
+
+Documentation:
+
+- [API overview](docs/API.md)
+- [Azure deployment guide](docs/DEPLOYMENT.md)
+- [User guide](docs/USER_GUIDE.md)
 
 ## Repository Structure
 
 ```text
 src/Rcv.Core/          Reusable instant-runoff voting library
 src/Rcv.Web.Api/       ASP.NET Core API
-src/rcv-web-ui/        React and TypeScript frontend scaffold
+src/rcv-web-ui/        React and TypeScript web application
 tests/                 Core and API tests
 tasks/                 Product plans and implementation trackers
 ```
@@ -151,15 +157,22 @@ dotnet build
 
 ```bash
 dotnet test
-```
-
-The frontend is currently a buildable Vite scaffold:
-
-```bash
 cd src/rcv-web-ui
 npm ci
-npm run build
+npm run lint
+npm run typecheck
+npm run test
+npm run test:e2e
 ```
+
+### Running Locally
+
+```bash
+dotnet run --project src/Rcv.Web.Api
+npm run dev --prefix src/rcv-web-ui
+```
+
+The Vite development server runs at `http://localhost:5173` and proxies `/api` to the API at `http://localhost:5041`. Configure the database, JWT signing key, and Google/Microsoft OAuth credentials before starting the API. See the [deployment guide](docs/DEPLOYMENT.md) for configuration details.
 
 ### Creating NuGet Package
 

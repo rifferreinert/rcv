@@ -15,7 +15,7 @@
 
 ### Notes
 
-- **Current status (2026-08-07)**: Phase 1 implementation remains complete with 29 passing tests. Package metadata and packing are configured, but `Rcv.Core` has not been published to NuGet and the repository has no release tag.
+- **Current status (2026-08-08)**: Phase 1 implementation remains complete with 29 passing tests and 95.34% line coverage. Package metadata and packing are configured, but `Rcv.Core` has not been published to NuGet and the repository has no release tag.
 - Tests use xUnit; run with `dotnet test`.
 - Each domain model produces XML doc comments for IntelliSense and NuGet.
 - **Purely functional design**: `RankedChoicePoll.CalculateResult()` takes ballots as input and returns results. No mutable state.
@@ -49,7 +49,7 @@
   - [x] 4.3 Document statistics fields in README with usage examples
 
 - [x] 5.0 Write tests, documentation, and prepare the package for NuGet publishing
-  - [x] 5.1 Achieve ≥90% code coverage with xUnit and edge-case fixtures (achieved 95.39% line coverage, 98.14% branch coverage)
+  - [x] 5.1 Achieve ≥90% code coverage with xUnit and edge-case fixtures (currently 95.34% line coverage)
   - [x] 5.2 Generate XML documentation file and include in `.csproj` for NuGet
   - [x] 5.3 Add README sections: installation, basic sample, contribution guidelines
   - [x] 5.4 Configure `dotnet pack` target with versioning and license metadata

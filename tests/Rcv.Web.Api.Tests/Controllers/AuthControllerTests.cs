@@ -119,7 +119,7 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
     }
 
     [Fact]
-    public async Task Callback_WhenSuccessful_SetsJwtCookieAndRedirectsToDashboard()
+    public async Task Callback_WhenSuccessful_InDevelopmentSetsHttpOnlyNonSecureJwtCookie()
     {
         // Use a fresh factory so ConfigureWebHost runs with the fake external auth configured.
         // (The shared _factory may already be built; a new instance ensures our overrides apply.)
@@ -135,7 +135,7 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.Redirect,
             "a successful callback should redirect to the frontend");
-        response.Headers.Location?.ToString().Should().Be("/dashboard");
+        response.Headers.Location?.ToString().Should().Be("http://localhost:5173/dashboard");
 
         var setCookie = response.Headers
             .Where(h => h.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase))
@@ -146,8 +146,28 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
             "the JWT cookie must be set after a successful callback");
         setCookie.Should().Contain(h => h.Contains("httponly", StringComparison.OrdinalIgnoreCase),
             "the JWT cookie must be httpOnly");
-        setCookie.Should().Contain(h => h.Contains("secure", StringComparison.OrdinalIgnoreCase),
-            "the JWT cookie must be Secure");
+        setCookie.Should().NotContain(h =>
+            h.StartsWith("rcv_jwt=") &&
+            h.Contains("secure", StringComparison.OrdinalIgnoreCase),
+            "the development JWT cookie must work over HTTP");
+    }
+
+    [Fact]
+    public async Task Callback_WithUntrustedReturnUrl_FallsBackToDashboard()
+    {
+        await using var factory = new AuthApiFactory()
+            .WithFakeExternalAuth(
+                externalId: "google-redirect",
+                email: "redirect@example.com",
+                displayName: "Redirect User",
+                returnUrl: "https://evil.example/phishing");
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.GetAsync("/api/auth/callback/google");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Be("http://localhost:5173/dashboard");
     }
 
     // -----------------------------------------------------------------------
@@ -157,7 +177,7 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
     [Fact]
     public async Task Logout_ReturnsOk()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateAuthenticatedClientWithAntiforgery();
 
         var response = await client.PostAsync("/api/auth/logout", null);
 
@@ -167,7 +187,7 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
     [Fact]
     public async Task Logout_DeletesJwtCookie()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateAuthenticatedClientWithAntiforgery();
 
         var response = await client.PostAsync("/api/auth/logout", null);
 
@@ -182,9 +202,9 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
     }
 
     [Fact]
-    public async Task Logout_SetsCookieWithSecurityFlags()
+    public async Task Logout_InDevelopmentSetsHttpOnlyNonSecureCookie()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateAuthenticatedClientWithAntiforgery();
 
         var response = await client.PostAsync("/api/auth/logout", null);
 
@@ -196,20 +216,69 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
         setCookieHeaders.Should().Contain(h =>
             h.Contains("rcv_jwt") && h.Contains("httponly", StringComparison.OrdinalIgnoreCase),
             "the JWT cookie must always be httpOnly");
-        setCookieHeaders.Should().Contain(h =>
+        setCookieHeaders.Should().NotContain(h =>
             h.Contains("rcv_jwt") && h.Contains("secure", StringComparison.OrdinalIgnoreCase),
-            "the JWT cookie must always be Secure");
+            "the development JWT cookie must work over HTTP");
     }
 
     [Fact]
-    public async Task Logout_CanBeCalledWithoutBeingLoggedIn()
+    public async Task Callback_InProductionSetsSecureJwtCookie()
+    {
+        await using var factory = new ProductionAuthApiFactory();
+        factory.WithFakeExternalAuth(
+            externalId: "google-production",
+            email: "production@example.com",
+            displayName: "Production User");
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            BaseAddress = new Uri("https://localhost"),
+        });
+
+        var response = await client.GetAsync("/api/auth/callback/google");
+        var setCookie = response.Headers.GetValues("Set-Cookie").ToList();
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        setCookie.Should().Contain(header =>
+            header.StartsWith("rcv_jwt=") &&
+            header.Contains("httponly", StringComparison.OrdinalIgnoreCase) &&
+            header.Contains("secure", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task AntiforgeryCookie_IsEnvironmentAware()
+    {
+        var developmentClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("http://localhost"),
+        });
+        var development = await developmentClient.GetAsync("/api/auth/csrf");
+        development.StatusCode.Should().Be(HttpStatusCode.OK);
+        development.Headers.GetValues("Set-Cookie").Should().Contain(header =>
+            header.StartsWith("rcv_xsrf=") &&
+            !header.Contains("secure", StringComparison.OrdinalIgnoreCase));
+
+        await using var productionFactory = new ProductionAuthApiFactory();
+        var productionClient = productionFactory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+        });
+        var production = await productionClient.GetAsync("/api/auth/csrf");
+        production.StatusCode.Should().Be(HttpStatusCode.OK);
+        production.Headers.GetValues("Set-Cookie").Should().Contain(header =>
+            header.StartsWith("rcv_xsrf=") &&
+            header.Contains("secure", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Logout_WhenNotAuthenticated_ReturnsUnauthorized()
     {
         // Logout should succeed even if no JWT cookie is present
         var client = _factory.CreateClient();
 
         var response = await client.PostAsync("/api/auth/logout", null);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     // -----------------------------------------------------------------------
@@ -299,6 +368,35 @@ public class AuthApiFactory : WebApplicationFactory<Program>
     private User? _testUser;
     private FakeExternalAuthOptions? _fakeExternalAuth;
 
+    public HttpClient CreateAuthenticatedClientWithAntiforgery()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            ExternalId = Guid.NewGuid().ToString(),
+            Provider = "Google",
+            CreatedAt = DateTime.UtcNow,
+        };
+        var client = CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+        });
+        var jwt = CreateJwtForUser(user);
+        client.DefaultRequestHeaders.Add("Cookie", $"rcv_jwt={jwt}");
+        var response = client.GetAsync("/api/auth/csrf").GetAwaiter().GetResult();
+        response.EnsureSuccessStatusCode();
+        var payload = JsonDocument.Parse(
+            response.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+        var token = payload.RootElement.GetProperty("token").GetString()!;
+        var cookie = response.Headers.GetValues("Set-Cookie")
+            .Single(value => value.StartsWith("rcv_xsrf=", StringComparison.Ordinal))
+            .Split(';')[0];
+        client.DefaultRequestHeaders.Remove("Cookie");
+        client.DefaultRequestHeaders.Add("Cookie", $"rcv_jwt={jwt}; {cookie}");
+        client.DefaultRequestHeaders.Add("X-XSRF-TOKEN", token);
+        return client;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, config) =>
@@ -376,13 +474,18 @@ public class AuthApiFactory : WebApplicationFactory<Program>
     /// Returns a factory variant that injects a fake External auth handler,
     /// simulating a successful OAuth callback without a real provider.
     /// </summary>
-    public AuthApiFactory WithFakeExternalAuth(string externalId, string email, string displayName)
+    public AuthApiFactory WithFakeExternalAuth(
+        string externalId,
+        string email,
+        string displayName,
+        string? returnUrl = null)
     {
         _fakeExternalAuth = new FakeExternalAuthOptions
         {
             ExternalId = externalId,
             Email = email,
             DisplayName = displayName,
+            ReturnUrl = returnUrl,
         };
         return this;
     }
@@ -441,6 +544,15 @@ public class AuthApiFactory : WebApplicationFactory<Program>
     }
 }
 
+public sealed class ProductionAuthApiFactory : AuthApiFactory
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Production");
+        base.ConfigureWebHost(builder);
+    }
+}
+
 // -----------------------------------------------------------------------
 // Fake External Authentication Handler
 // Used to simulate a successful OAuth callback in tests.
@@ -452,6 +564,7 @@ public class FakeExternalAuthOptions : AuthenticationSchemeOptions
     public string ExternalId { get; set; } = string.Empty;
     public string? Email { get; set; }
     public string? DisplayName { get; set; }
+    public string? ReturnUrl { get; set; }
 }
 
 /// <summary>
@@ -478,7 +591,10 @@ public class FakeExternalAuthHandler : AuthenticationHandler<FakeExternalAuthOpt
         };
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, Scheme.Name);
+        var properties = new AuthenticationProperties();
+        if (Options.ReturnUrl is not null)
+            properties.Items["returnUrl"] = Options.ReturnUrl;
+        var ticket = new AuthenticationTicket(principal, properties, Scheme.Name);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }

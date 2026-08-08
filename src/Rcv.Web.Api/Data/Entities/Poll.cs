@@ -50,16 +50,10 @@ public class Poll
     public bool IsResultsPublic { get; set; } = true;
 
     /// <summary>
-    /// Whether individual votes are public (false = anonymous voting)
-    /// </summary>
-    public bool IsVotingPublic { get; set; } = false;
-
-    /// <summary>
     /// Current status: Active, Closed, Deleted
     /// </summary>
     [Required]
-    [MaxLength(20)]
-    public string Status { get; set; } = "Active";
+    public PollStatus Status { get; set; } = PollStatus.Active;
 
     // Navigation properties
     public User Creator { get; set; } = null!;

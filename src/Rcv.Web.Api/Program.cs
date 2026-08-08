@@ -5,14 +5,45 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Rcv.Web.Api.Services;
-using System.Text;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Rcv.Web.Api.Infrastructure;
+using Serilog;
+using Microsoft.AspNetCore.WebUtilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseSerilog((context, services, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console());
+
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()))
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "rcv_xsrf";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.None
+        : CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -53,13 +84,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         var jwtCfg = builder.Configuration.GetSection("Authentication:Jwt");
-        var key = jwtCfg["SecretKey"]
-            ?? throw new InvalidOperationException("JWT SecretKey is not configured.");
+        var key = JwtSigningKeyValidator.CreateSecurityKey(jwtCfg["SecretKey"]);
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            IssuerSigningKey = key,
             ValidateIssuer = true,
             ValidIssuer = jwtCfg["Issuer"],
             ValidateAudience = true,
@@ -105,15 +135,56 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        await Results.Problem(
+            statusCode: StatusCodes.Status429TooManyRequests,
+            title: "Too many requests",
+            detail: "The request rate limit has been exceeded.")
+            .ExecuteAsync(context.HttpContext);
+    };
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+    options.AddPolicy("votes", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+});
 
 // Register application services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IVotingService, VotingService>();
+builder.Services.AddScoped<IPollLifecycleService, PollLifecycleService>();
+builder.Services.AddScoped<IResultsService, ResultsService>();
+builder.Services.AddScoped<DatabaseReadyHealthCheck>();
+builder.Services.AddHostedService<JwtConfigurationValidationService>();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseReadyHealthCheck>("database", tags: new[] { "ready" });
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -123,15 +194,75 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty; // Serve Swagger UI at the app's root
     });
 }
+else
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+    app.UseCors();
 
-app.UseCors();
-
+app.UseSerilogRequestLogging();
+app.UseExceptionHandler();
+app.UseStatusCodePages(async context =>
+{
+    var httpContext = context.HttpContext;
+    var status = httpContext.Response.StatusCode;
+    var problemDetails = httpContext.RequestServices.GetRequiredService<IProblemDetailsService>();
+    await problemDetails.TryWriteAsync(new ProblemDetailsContext
+    {
+        HttpContext = httpContext,
+        ProblemDetails = new ProblemDetails
+        {
+            Status = status,
+            Title = ReasonPhrases.GetReasonPhrase(status),
+            Instance = httpContext.Request.Path,
+        },
+    });
+});
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = _ => false,
+});
+app.MapHealthChecks("/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+});
+if (!app.Environment.IsDevelopment())
+{
+    app.MapFallback(async context =>
+    {
+        var path = context.Request.Path;
+        if (path.StartsWithSegments("/api") ||
+            path.StartsWithSegments("/health") ||
+            path.StartsWithSegments("/ready") ||
+            path.StartsWithSegments("/swagger"))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        var webRoot = app.Environment.WebRootPath
+            ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+        var indexPath = Path.Combine(webRoot, "index.html");
+        if (!File.Exists(indexPath))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.SendFileAsync(indexPath);
+    });
+}
 
 app.Run();
 

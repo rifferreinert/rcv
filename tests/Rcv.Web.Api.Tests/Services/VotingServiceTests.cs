@@ -50,7 +50,7 @@ public class VotingServiceTests
             Id = Guid.NewGuid(),
             Title = "Test Poll",
             CreatorId = creatorId,
-            Status = "Active",
+            Status = PollStatus.Active,
             CreatedAt = DateTime.UtcNow,
         };
 
@@ -143,7 +143,7 @@ public class VotingServiceTests
         var user = await CreateTestUser(context);
         var (poll, optionIds) = await CreateTestPoll(context, user.Id);
 
-        poll.Status = "Closed";
+        poll.Status = PollStatus.Closed;
         await context.SaveChangesAsync();
 
         var service = CreateService(context);
@@ -160,7 +160,7 @@ public class VotingServiceTests
         var user = await CreateTestUser(context);
         var (poll, optionIds) = await CreateTestPoll(context, user.Id);
 
-        poll.Status = "Deleted";
+        poll.Status = PollStatus.Deleted;
         await context.SaveChangesAsync();
 
         var service = CreateService(context);
@@ -216,8 +216,8 @@ public class VotingServiceTests
         var result = await service.GetUserVoteAsync(poll.Id, user.Id);
 
         result.Should().NotBeNull();
-        result!.PollId.Should().Be(poll.Id);
-        result.RankedChoices.Should().BeEquivalentTo(optionIds, opts => opts.WithStrictOrdering());
+        result.HasVoted.Should().BeTrue();
+        result.RankedOptionIds.Should().BeEquivalentTo(optionIds, opts => opts.WithStrictOrdering());
     }
 
     [Fact]
@@ -230,7 +230,7 @@ public class VotingServiceTests
 
         var result = await service.GetUserVoteAsync(poll.Id, user.Id);
 
-        result.Should().BeNull();
+        result.HasVoted.Should().BeFalse();
     }
 
     [Fact]
