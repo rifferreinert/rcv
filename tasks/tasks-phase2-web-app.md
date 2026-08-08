@@ -1,46 +1,67 @@
 # Phase 2: Web App Implementation Tasks
 
 > **Reference**: See `phase2-web-app.md` for architecture, API specification, and data models
+>
+> **Last updated**: 2026-08-07. This is the authoritative implementation tracker. The PRD and implementation plan describe target-state behavior.
+
+## Current Implementation Snapshot
+
+| Area | Current state |
+|---|---|
+| Core library | Complete; 29 automated tests passing |
+| API | Authentication, poll management, and voting implemented |
+| API tests | 108 automated tests passing, including in-process controller integration tests |
+| Results | No results service, DTO, controller, or `Rcv.Core` integration |
+| Frontend | Dependencies and build tooling installed; application remains the Vite starter |
+| Database | EF Core model and initial migration exist; no Azure SQL instance has been migrated |
+| Delivery | .NET CI and NuGet packing exist; frontend CI and deployment do not |
+
+Known backend gaps before the API can be considered feature-complete:
+
+- `GET /api/polls` does not implement its documented `status` filter.
+- Voting checks poll status but does not reject an active poll whose `ClosesAt` deadline has passed.
+- `VoteStatusResponse` is not implemented; the current `votes/me` endpoint returns `VoteResponse` or 404.
+- OAuth callback redirection and secure-cookie behavior still need end-to-end testing with the separately hosted frontend.
 
 ## Task Overview
 
 - **Total Tasks**: 14 major sections, ~90 subtasks
-- **Timeline**: 7 days
+- **Original estimate**: 7 days (not a current forecast)
 - **Sequence**: Backend (days 1-4) → Frontend (days 5-6) → Testing & Deployment (day 7+)
 
-## 1.0 Project Setup and Infrastructure ✅
+## 1.0 Project Setup and Infrastructure - PARTIAL
 
 - [x] 1.1 Create ASP.NET Core Web API project (`Rcv.Web.Api`)
   - [x] 1.1.1 Run `dotnet new webapi` with .NET 9.0 target
-  - [x] 1.1.2 Add reference to `Rcv.Core` NuGet package
+  - [x] 1.1.2 Add a project reference to `Rcv.Core`
   - [x] 1.1.3 Configure `appsettings.json` with connection strings and auth providers
   - [x] 1.1.4 Set up Swagger/OpenAPI for API documentation
 - [x] 1.2 Create React frontend project (`rcv-web-ui`)
   - [x] 1.2.1 Initialize with `npm create vite@latest` (React + TypeScript template)
   - [x] 1.2.2 Install dependencies (React Router, Axios, Tailwind CSS, @dnd-kit, Recharts)
-  - [x] 1.2.3 Configure Tailwind CSS with custom theme (responsive breakpoints)
-  - [x] 1.2.4 Set up ESLint and Prettier
+  - [ ] 1.2.3 Configure Tailwind CSS with custom theme (content paths exist; custom theme is not implemented)
+  - [ ] 1.2.4 Set up ESLint and Prettier (ESLint is configured; Prettier is not installed)
 - [x] 1.3 Update solution file to include new projects
 - [x] 1.4 Create test project (`Rcv.Web.Api.Tests`) with xUnit, Moq, FluentAssertions
 - [x] 1.5 Configure CORS on backend to allow frontend origin (development and production URLs)
 
-## 2.0 Database Design and Entity Framework Setup ✅
+## 2.0 Database Design and Entity Framework Setup - PARTIAL
 
 - [x] 2.1 Install EF Core packages (SqlServer, Tools, Design)
 - [x] 2.2 Create entity classes with data annotations
   - [x] 2.2.1 `User` entity with provider mapping
   - [x] 2.2.2 `Poll` entity with creator relationship
   - [x] 2.2.3 `PollOption` entity with poll relationship
-  - [x] 2.2.4 `Vote` entity with `List<Guid>` property for ranked choices (mapped to JSON column)
+  - [x] 2.2.4 `Vote` entity with `List<Guid>` property for ranked choices (JSON serialized in SQL Server)
 - [x] 2.3 Create `RcvDbContext` with DbSets and relationships
   - [x] 2.3.1 Configure entity relationships (one-to-many, unique constraints)
   - [x] 2.3.2 Add indexes for common queries
-  - [x] 2.3.3 Configure JSON column type for `Vote.RankedChoices` using `HasColumnType("json")`
+  - [x] 2.3.3 Configure `Vote.RankedChoices` as JSON serialized into `nvarchar(max)`
 - [x] 2.4 Generate initial migration (`dotnet ef migrations add InitialCreate`)
-- [x] 2.5 Apply migration to Azure SQL Database (skipped - no DB instance yet)
-- [x] 2.6 Seed sample data for development (skipped for MVP)
+- [ ] 2.5 Apply migration to Azure SQL Database (blocked until a database instance exists)
+- [ ] 2.6 Seed sample data for development (deferred for MVP)
 
-## 3.0 Authentication & Authorization ✅
+## 3.0 Authentication & Authorization - PARTIAL
 
 - [x] 3.1 Configure authentication services in `Program.cs`
   - [x] 3.1.1 Add JWT Bearer authentication scheme (reads token from `rcv_jwt` httpOnly cookie)
@@ -48,7 +69,7 @@
   - [x] 3.1.3 Set up temporary External cookie scheme for OAuth handshake
 - [x] 3.2 Create `AuthController` with login/logout endpoints
   - [x] 3.2.1 `GET /api/auth/login/{provider}` - Initiate OAuth flow
-  - [x] 3.2.2 `GET /api/auth/callback/{provider}` - Handle OAuth callback (set JWT cookie, redirect to /dashboard)
+  - [ ] 3.2.2 `GET /api/auth/callback/{provider}` - Callback exists, but redirect and secure-cookie behavior need end-to-end frontend testing
   - [x] 3.2.3 `POST /api/auth/logout` - Expire JWT cookie
   - [x] 3.2.4 `GET /api/auth/me` - Get current user info (requires `[Authorize]`)
 - [x] 3.3 Create `AuthService` for user creation/lookup
@@ -58,7 +79,7 @@
 - [x] 3.4 Add `[Authorize]` attribute on protected endpoints
 - [x] 3.5 Write unit tests for `AuthService` (16 tests) and integration tests for `AuthController` (18 tests)
 
-## 4.0 Poll Management API ✅
+## 4.0 Poll Management API - PARTIAL
 
 - [x] 4.1 Create `PollService` with business logic
   - [x] 4.1.1 `CreatePollAsync(userId, title, description, options, settings)` - Returns Poll entity
@@ -75,32 +96,32 @@
 - [x] 4.3 Create `PollsController` with CRUD endpoints
   - [x] 4.3.1 `POST /api/polls` - Create poll (requires auth)
   - [x] 4.3.2 `GET /api/polls/{id}` - Get poll details
-  - [x] 4.3.3 `GET /api/polls` - List polls (with filters: creator, status, pagination)
+  - [ ] 4.3.3 `GET /api/polls` - Creator and pagination filters are implemented; status filtering remains
   - [x] 4.3.4 `PUT /api/polls/{id}` - Update poll (creator only)
   - [x] 4.3.5 `DELETE /api/polls/{id}` - Delete poll (creator only)
   - [x] 4.3.6 `POST /api/polls/{id}/close` - Close poll early (creator only)
 - [x] 4.4 Add validation rules (minimum 2 options, required fields)
 - [x] 4.5 Write unit tests for `PollService` and integration tests for `PollsController`
 
-## 5.0 Voting API
+## 5.0 Voting API - PARTIAL
 
 - [ ] 5.1 Create `VotingService` with business logic
-  - [ ] 5.1.1 `CastVoteAsync(pollId, userId, rankedOptionIds)` - Validates and saves vote
-  - [ ] 5.1.2 `GetUserVoteAsync(pollId, userId)` - Returns user's vote if exists
-  - [ ] 5.1.3 `GetVoteCountAsync(pollId)` - Returns participation count
-  - [ ] 5.1.4 Validate poll is open (not closed)
-  - [ ] 5.1.5 Validate all option IDs belong to poll
-  - [ ] 5.1.6 Handle duplicate vote attempts (update existing or return error)
+  - [x] 5.1.1 `CastVoteAsync(pollId, userId, rankedOptionIds)` - Validates and saves vote
+  - [x] 5.1.2 `GetUserVoteAsync(pollId, userId)` - Returns user's vote if it exists
+  - [x] 5.1.3 `GetVoteCountAsync(pollId)` - Returns participation count
+  - [ ] 5.1.4 Validate poll is open (status validation exists; `ClosesAt` is not enforced)
+  - [x] 5.1.5 Validate all option IDs belong to poll
+  - [x] 5.1.6 Handle duplicate vote attempts by updating the existing vote
 - [ ] 5.2 Create DTOs for voting operations
-  - [ ] 5.2.1 `CastVoteRequest` (rankedOptionIds[])
-  - [ ] 5.2.2 `VoteResponse` (voteId, pollId, castAt, updatedAt)
+  - [x] 5.2.1 `CastVoteRequest` (rankedOptionIds[])
+  - [x] 5.2.2 `VoteResponse` (voteId, pollId, ranked choices, castAt, updatedAt)
   - [ ] 5.2.3 `VoteStatusResponse` (hasVoted, canChange, votedAt)
-- [ ] 5.3 Create `VotesController` with voting endpoints
-  - [ ] 5.3.1 `POST /api/polls/{pollId}/votes` - Cast/update vote (requires auth)
-  - [ ] 5.3.2 `GET /api/polls/{pollId}/votes/me` - Get current user's vote
-  - [ ] 5.3.3 `GET /api/polls/{pollId}/votes/count` - Get participation stats
-- [ ] 5.4 Add validation for ranked choices (no duplicates, valid option IDs)
-- [ ] 5.5 Write unit tests for `VotingService` and integration tests for `VotesController`
+- [x] 5.3 Create `VotesController` with voting endpoints
+  - [x] 5.3.1 `POST /api/polls/{pollId}/votes` - Cast/update vote (requires auth)
+  - [x] 5.3.2 `GET /api/polls/{pollId}/votes/me` - Get current user's vote
+  - [x] 5.3.3 `GET /api/polls/{pollId}/votes/count` - Get participation stats
+- [x] 5.4 Add validation for ranked choices (non-empty, no duplicates, valid option IDs)
+- [x] 5.5 Write unit tests for `VotingService` and integration tests for `VotesController`
 
 ## 6.0 Results Calculation and Visualization API
 
@@ -205,17 +226,18 @@
   - [ ] 11.6.2 Add visual indicator when results are live/updating
 - [ ] 11.7 Ensure responsive design for charts (mobile-friendly, readable on small screens)
 
-## 12.0 Testing and Quality Assurance
+## 12.0 Testing and Quality Assurance - PARTIAL
 
 - [ ] 12.1 Write unit tests for backend services
-  - [ ] 12.1.1 `PollService` tests (create, close, delete, authorization)
-  - [ ] 12.1.2 `VotingService` tests (cast vote, duplicate handling, validation)
+  - [x] 12.1.1 `PollService` tests (create, close, delete, authorization)
+  - [x] 12.1.2 `VotingService` tests (cast vote, duplicate handling, validation)
   - [ ] 12.1.3 `ResultsService` tests (integration with Rcv.Core, caching)
-  - [ ] 12.1.4 `AuthService` tests (user creation, token generation)
+  - [x] 12.1.4 `AuthService` tests (user creation, token generation)
 - [ ] 12.2 Write integration tests for API controllers
-  - [ ] 12.2.1 `PollsController` (CRUD operations, authorization)
-  - [ ] 12.2.2 `VotesController` (voting flow, edge cases)
+  - [x] 12.2.1 `PollsController` (CRUD operations, authorization)
+  - [x] 12.2.2 `VotesController` (voting flow, edge cases)
   - [ ] 12.2.3 `ResultsController` (results visibility rules)
+  - [x] 12.2.4 `AuthController` (provider routes, callback behavior, current-user endpoint)
 - [ ] 12.3 Manual testing checklist
   - [ ] 12.3.1 Authentication flow with each SSO provider
   - [ ] 12.3.2 Poll creation and management (create, close, delete)
@@ -227,7 +249,7 @@
 - [ ] 12.4 Cross-browser testing (Chrome, Firefox, Safari, Edge)
 - [ ] 12.5 Performance testing (database query optimization, caching effectiveness)
 
-## 13.0 Documentation and Deployment Preparation
+## 13.0 Documentation and Deployment Preparation - PARTIAL
 
 - [ ] 13.1 Write API documentation (Swagger/OpenAPI annotations on controllers)
 - [ ] 13.2 Create deployment guide (`docs/DEPLOYMENT.md`)
@@ -236,12 +258,12 @@
   - [ ] 13.2.3 Static web app hosting for frontend (Azure, Vercel, or Netlify)
   - [ ] 13.2.4 OAuth provider registration and configuration
   - [ ] 13.2.5 Environment variables and secrets management
-- [ ] 13.3 Update root `README.md` with Phase 2 overview and quickstart
+- [x] 13.3 Update root `README.md` with current Phase 2 status and repository overview
 - [ ] 13.4 Create `.env.example` files for both backend and frontend
 - [ ] 13.5 Update CI/CD pipeline (`.github/workflows/ci.yml`)
-  - [ ] 13.5.1 Add build steps for web API
+  - [x] 13.5.1 Build the web API as part of the .NET solution
   - [ ] 13.5.2 Add build steps for React frontend
-  - [ ] 13.5.3 Run all tests (Rcv.Core + Rcv.Web.Api)
+  - [x] 13.5.3 Run all .NET tests (`Rcv.Core` + `Rcv.Web.Api`)
   - [ ] 13.5.4 Generate deployment artifacts
 - [ ] 13.6 Write user-facing documentation
   - [ ] 13.6.1 How to create a poll

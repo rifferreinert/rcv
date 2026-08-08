@@ -5,20 +5,23 @@
 - `src/Rcv.Core/Domain/RcvResult.cs` – Immutable aggregate result returned by the tally.
 - `src/Rcv.Core/Domain/RoundSummary.cs` – Immutable per-round snapshot of vote counts and eliminations.
 - `src/Rcv.Core/RankedChoicePoll.cs` – Public façade exposing the purely functional API.
-- `src/Rcv.Core/Internal/RcvCalculator.cs` – Internal algorithm implementation.
-- `tests/Rcv.Core.Tests/RankedChoicePollTests.cs` – Unit tests for public API & core logic.
-- `tests/Rcv.Core.Tests/RcvCalculatorEdgeCaseTests.cs` – Edge-case & regression tests.
+- `src/Rcv.Core/IRcvCalculator.cs` – Strategy interface for voting calculators.
+- `src/Rcv.Core/Calculators/InstantRunoffCalculator.cs` – Instant-runoff implementation.
+- `tests/Rcv.Core.Tests/RankedChoicePollTests.cs` – Tests for the public facade and validation.
+- `tests/Rcv.Core.Tests/RcvAlgorithmTests.cs` – Algorithm scenario tests.
+- `tests/Rcv.Core.Tests/DomainModelTests.cs` – Domain-model validation tests.
 - `src/Rcv.Core/Rcv.Core.csproj` – Library project file including NuGet metadata.
 - `README.md` – Library overview and quick-start guide.
 
 ### Notes
 
+- **Current status (2026-08-07)**: Phase 1 implementation remains complete with 29 passing tests. Package metadata and packing are configured, but `Rcv.Core` has not been published to NuGet and the repository has no release tag.
 - Tests use xUnit; run with `dotnet test`.
 - Each domain model produces XML doc comments for IntelliSense and NuGet.
 - **Purely functional design**: `RankedChoicePoll.CalculateResult()` takes ballots as input and returns results. No mutable state.
 - **Immutability**: All models use read-only properties with constructor validation.
 - **Thread safety**: Library is thread-safe after construction due to immutable design.
-- Maintain SOLID design by keeping calculation logic in `RcvCalculator` and exposing only immutable models through the public API.
+- Maintain SOLID design by keeping calculation logic in `InstantRunoffCalculator` and exposing only immutable models through the public API.
 
 ## Tasks
 
@@ -57,17 +60,19 @@
 - **Strategy Pattern**: Implemented `IRcvCalculator` interface to allow pluggable voting algorithms. `InstantRunoffCalculator` is the IRV implementation.
 - **Random Tie-Breaking**: When multiple candidates tie for last place, one is randomly eliminated. Random instance passed as parameter for deterministic testing.
 - **Test Coverage**: 29 tests passing, covering domain models, API validation, and algorithm scenarios (immediate majority, elimination rounds, ties, partial ballots, edge cases, unknown option ID validation).
-- **Code Coverage**: Achieved 95.39% line coverage and 98.14% branch coverage (exceeds ≥90% requirement).
+- **Historical Code Coverage**: Phase 1 recorded 95.39% line coverage and 98.14% branch coverage. Coverage is not currently enforced by CI.
 - **Validation**: All ballots validated to ensure option IDs exist in poll options (fail-fast principle).
 - **Documentation**: README includes Quick Start, statistics analysis examples, and comprehensive API reference.
 
 ## Completed Tasks
 
-All tasks in the PRD v1 NuGet module are complete:
+All implementation and package-preparation tasks in the PRD v1 NuGet module are complete:
 - ✅ Domain models with immutability and validation
 - ✅ Instant-runoff voting calculator with Strategy pattern
 - ✅ Comprehensive test coverage (29 tests, 95%+ coverage)
 - ✅ Round-by-round statistics and tracking
 - ✅ README documentation with examples
-- ✅ NuGet package configuration
-- ✅ GitHub Actions CI/CD pipeline
+- ✅ NuGet package configuration and local packing
+- ✅ GitHub Actions build, test, and package-artifact pipeline
+
+Publishing the package and creating a tagged release remain release-management work outside the completed implementation checklist.

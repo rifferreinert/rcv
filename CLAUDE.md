@@ -1,7 +1,7 @@
 
 ## Project Overview
 
-This is a .NET ranked choice voting (RCV) platform c
+This is a .NET ranked choice voting (RCV) platform. It currently includes the completed `Rcv.Core` library, backend APIs through voting, and a Vite frontend scaffold.
 
 ## Development Commands
 
@@ -41,7 +41,7 @@ The frontend expects the API at `http://localhost:5041` (CORS is pre-configured 
 dotnet test                                     # Run all tests (Core + Web API)
 dotnet test --verbosity detailed                # Verbose test output
 dotnet test --filter "FullyQualifiedName~PollServiceTests"      # Run specific test class
-dotnet test --filter "FullyQualifiedName~RcvCalculatorEdgeCaseTests"  # Core edge cases
+dotnet test --filter "FullyQualifiedName~RcvAlgorithmTests"          # Core algorithm scenarios
 ```
 
 ## Architecture
@@ -51,12 +51,12 @@ dotnet test --filter "FullyQualifiedName~RcvCalculatorEdgeCaseTests"  # Core edg
 src/
 ├── Rcv.Core/              # Core RCV library (NuGet package)
 ├── Rcv.Web.Api/           # ASP.NET Core 9 Web API
-│   ├── Controllers/       # AuthController, PollsController (more coming)
-│   ├── Services/          # AuthService, PollService (interfaces + implementations)
+│   ├── Controllers/       # AuthController, PollsController, VotesController
+│   ├── Services/          # AuthService, PollService, VotingService
 │   ├── Validators/        # FluentValidation validators for request DTOs
 │   ├── Data/              # EF Core DbContext + entity classes
 │   └── Models/            # Request/Response DTOs
-└── rcv-web-ui/            # React 18 + TypeScript SPA (Vite)
+└── rcv-web-ui/            # React 19 + TypeScript SPA scaffold (Vite)
 ```
 
 

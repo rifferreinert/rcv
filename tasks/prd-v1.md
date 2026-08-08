@@ -1,5 +1,7 @@
 # Ranked Choice Voting Platform PRD
 
+> **Document status**: Product requirements and long-term vision, not implementation status. See `tasks-phase2-web-app.md` for the current implementation tracker.
+
 ### TL;DR
 
 The Ranked Choice Voting Platform helps business users create, run, and

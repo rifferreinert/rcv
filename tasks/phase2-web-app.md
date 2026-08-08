@@ -1,5 +1,7 @@
 # Phase 2: Basic Web App Implementation Plan
 
+> **Document status**: Target-state architecture and original implementation plan. It is not a record of completed functionality. As of 2026-08-07, authentication, poll management, and voting APIs exist; results and the product frontend are not implemented. See `tasks-phase2-web-app.md` for current status.
+
 ## Quick Reference
 
 - **Timeline**: 1 week (7 days)

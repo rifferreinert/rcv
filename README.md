@@ -1,8 +1,34 @@
-# Rcv.Core - Ranked Choice Voting Library
+# Ranked Choice Voting Platform
 
-A comprehensive .NET library for conducting ranked choice voting (RCV) elections with transparent round-by-round elimination tracking and detailed statistics.
+A .NET ranked choice voting platform under development. The repository contains a reusable instant-runoff voting library, an ASP.NET Core API, and a React frontend scaffold.
 
-## Features
+## Current Status
+
+Last updated: 2026-08-07
+
+| Area | Status |
+|---|---|
+| `Rcv.Core` voting library | Complete and tested |
+| Authentication API | Google and Microsoft OAuth implemented; manual provider testing remains |
+| Poll management API | Implemented except the documented status list filter |
+| Voting API | Implemented; automatic enforcement of `ClosesAt` remains |
+| Results API and `Rcv.Core` integration | Not implemented |
+| React web application | Vite starter only |
+| Deployment and Slack/Teams integrations | Not implemented |
+
+See [`tasks/tasks-phase2-web-app.md`](tasks/tasks-phase2-web-app.md) for the authoritative implementation tracker. The PRD and Phase 2 plan describe the intended product and target architecture, not completed functionality.
+
+## Repository Structure
+
+```text
+src/Rcv.Core/          Reusable instant-runoff voting library
+src/Rcv.Web.Api/       ASP.NET Core API
+src/rcv-web-ui/        React and TypeScript frontend scaffold
+tests/                 Core and API tests
+tasks/                 Product plans and implementation trackers
+```
+
+## Rcv.Core Features
 
 - **Fair Elections**: Implements instant-runoff voting (IRV) with proper ranked choice tallying
 - **Comprehensive Statistics**: Round-by-round elimination data, vote transfer tracking, and participation metrics
@@ -10,18 +36,12 @@ A comprehensive .NET library for conducting ranked choice voting (RCV) elections
 - **Developer Friendly**: Clean, immutable API with comprehensive XML documentation
 - **High Performance**: Efficient algorithms designed for concurrent usage
 
-## Installation
+## Using Rcv.Core
 
-Install the package via NuGet Package Manager:
+`Rcv.Core` is configured for packaging as version 1.0.0 but is not currently published to NuGet. Projects in this repository use a project reference. To produce a local package:
 
 ```bash
-dotnet add package Rcv.Core
-```
-
-Or via Package Manager Console in Visual Studio:
-
-```powershell
-Install-Package Rcv.Core
+dotnet pack src/Rcv.Core/Rcv.Core.csproj -c Release
 ```
 
 ## Quick Start
@@ -123,6 +143,7 @@ foreach (var kvp in result.FinalVoteTotals)
 ### Building
 
 ```bash
+dotnet restore
 dotnet build
 ```
 
@@ -130,6 +151,14 @@ dotnet build
 
 ```bash
 dotnet test
+```
+
+The frontend is currently a buildable Vite scaffold:
+
+```bash
+cd src/rcv-web-ui
+npm ci
+npm run build
 ```
 
 ### Creating NuGet Package
