@@ -284,6 +284,9 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+src/rcv-web-ui/coverage/
+src/rcv-web-ui/playwright-report/
+src/rcv-web-ui/test-results/
 
 # Visual Studio 6 build log
 *.plg
