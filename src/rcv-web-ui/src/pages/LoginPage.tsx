@@ -25,6 +25,11 @@ export function LoginPage() {
         <div className="mt-7 grid gap-3">
           {providerButton('google', 'Google')}
           {providerButton('microsoft', 'Microsoft')}
+          {import.meta.env.DEV && (
+            <a className="btn-secondary w-full justify-center" href="/api/auth/dev-login">
+              Dev Login (local only)
+            </a>
+          )}
         </div>
         <p className="mt-6 text-sm text-ink-500">Authentication is handled securely. This app never sees your provider password.</p>
       </section>

@@ -4,7 +4,7 @@ A deployable ranked choice voting web application with a reusable instant-runoff
 
 ## Current Status
 
-Last updated: 2026-08-08
+Last updated: 2026-10-04
 
 | Area | Status |
 |---|---|
@@ -13,7 +13,7 @@ Last updated: 2026-08-08
 | Poll management and voting | Complete for the Phase 2 MVP, including unlisted dashboard pagination, lazy deadline closure, and vote revisions |
 | Aggregate results | Complete with deterministic `Rcv.Core` calculation, live/final visibility rules, and immutable final-result caching |
 | React web application | Complete responsive SPA with authentication, poll management, accessible ranking, and results visualization |
-| Quality and delivery | 139 API tests, 9 frontend component tests, 2 Playwright smoke tests, coverage gates, EF validation, and a combined App Service artifact |
+| Quality and delivery | 156 API tests, 9 frontend component tests, 2 Playwright smoke tests, coverage gates, EF validation, and a combined App Service artifact |
 | External release work | Azure resources, production secrets, database migration, and real Google/Microsoft provider verification |
 
 See [`tasks/tasks-phase2-web-app.md`](tasks/tasks-phase2-web-app.md) for the authoritative implementation tracker. The PRD and Phase 2 plan describe the intended product and target architecture, not completed functionality.
@@ -172,7 +172,7 @@ dotnet run --project src/Rcv.Web.Api
 npm run dev --prefix src/rcv-web-ui
 ```
 
-The Vite development server runs at `http://localhost:5173` and proxies `/api` to the API at `http://localhost:5041`. Configure the database, JWT signing key, and Google/Microsoft OAuth credentials before starting the API. See the [deployment guide](docs/DEPLOYMENT.md) for configuration details.
+The Vite development server runs at `http://localhost:5173` and proxies `/api` to the API at `http://localhost:5041`. Development automatically creates a local SQLite database and provides **Dev Login (local only)** without OAuth credentials. Production requires SQL Server, a private JWT signing key, and Google/Microsoft OAuth credentials. See the [deployment guide](docs/DEPLOYMENT.md) for configuration details.
 
 ### Creating NuGet Package
 

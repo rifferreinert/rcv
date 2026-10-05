@@ -1,6 +1,6 @@
 # Phase 2: Web App Completion Status
 
-> **Last updated**: 2026-08-08
+> **Last updated**: 2026-10-04
 > **Status**: Repository implementation complete. This is the authoritative Phase 2 tracker.
 
 ## Completion Snapshot
@@ -8,7 +8,7 @@
 | Area | Status |
 |---|---|
 | Core library | Complete; 29 tests and 95.34% line coverage |
-| Web API | Complete; 139 tests and 96.03% application line coverage |
+| Web API | Complete; 156 tests and 95.84% application line coverage |
 | React application | Complete; 9 component tests and 76.28% line coverage |
 | Browser smoke coverage | Complete; 2 Playwright tests |
 | Database model | Complete; migrations match the EF model and an idempotent script is generated in CI |
@@ -22,6 +22,7 @@ API coverage excludes generated EF migrations and the separately tested `Rcv.Cor
 - [x] ASP.NET Core 9 API references `Rcv.Core`.
 - [x] React, TypeScript, Vite, Tailwind CSS, React Router, React Query, Axios, dnd-kit, and Recharts are configured.
 - [x] Development uses Vite at `http://localhost:5173` with same-browser `/api` proxying to `http://localhost:5041`.
+- [x] Local Development uses auto-created SQLite storage and a Development-only test-user login; production uses SQL Server and OAuth.
 - [x] Production serves the compiled SPA and API from one ASP.NET Core application.
 - [x] Root and frontend READMEs document development and validation commands.
 

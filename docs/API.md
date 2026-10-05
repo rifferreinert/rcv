@@ -12,6 +12,7 @@ Authentication uses an HTTP-only JWT cookie. The SPA obtains an antiforgery toke
 | `GET` | `/api/auth/callback/{provider}` | OAuth callback |
 | `GET` | `/api/auth/me` | Authenticated |
 | `GET` | `/api/auth/csrf` | Public token bootstrap |
+| `GET` | `/api/auth/dev-login` | Development only; fixed local test user (404 in production) |
 | `POST` | `/api/auth/logout` | Authenticated and antiforgery-protected |
 
 ## Polls

@@ -9,6 +9,8 @@ describe('authentication and dashboard', () => {
     server.use(http.get('*/api/auth/me', () => new HttpResponse(null, { status: 401 })))
     renderApp('/dashboard')
     expect(await screen.findByRole('heading', { name: /sign in to ranked/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Dev Login (local only)' }))
+      .toHaveAttribute('href', '/api/auth/dev-login')
   })
 
   it('loads, filters, and paginates the current user polls', async () => {

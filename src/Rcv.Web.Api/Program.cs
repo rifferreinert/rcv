@@ -74,7 +74,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<Rcv.Web.Api.Data.RcvDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseSqlServer(connectionString);
+    if (builder.Environment.IsDevelopment())
+        options.UseSqlite(connectionString);
+    else
+        options.UseSqlServer(connectionString);
 });
 
 // Configure Authentication: JWT Bearer (default) + temporary external cookie + OAuth providers
@@ -178,6 +181,14 @@ builder.Services.AddHealthChecks()
     .AddCheck<DatabaseReadyHealthCheck>("database", tags: new[] { "ready" });
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var database = scope.ServiceProvider.GetRequiredService<Rcv.Web.Api.Data.RcvDbContext>();
+    if (database.Database.IsSqlite())
+        await database.Database.EnsureCreatedAsync();
+}
 
 // Configure the HTTP request pipeline
 app.UseForwardedHeaders(new ForwardedHeadersOptions

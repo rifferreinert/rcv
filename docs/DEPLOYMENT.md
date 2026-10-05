@@ -56,6 +56,13 @@ Prefer managed identity for Azure SQL when the hosting environment supports it. 
 
 ## OAuth Registration
 
+Local Development uses SQLite with automatic schema creation and a development
+JWT key. The SPA's **Dev Login (local only)** button signs in a fixed test user
+without OAuth credentials. This endpoint returns 404 outside Development.
+SQLite development databases are disposable; delete the local `rcv-dev.db`
+after schema changes if it needs to be recreated. Production continues to use
+SQL Server migrations and requires private credentials.
+
 Register these production callback URLs, replacing the example host:
 
 ```text
@@ -101,7 +108,8 @@ dotnet ef migrations script \
   --project src/Rcv.Web.Api \
   --startup-project src/Rcv.Web.Api \
   --idempotent \
-  --output artifacts/migrate.sql
+  --output artifacts/migrate.sql \
+  -- --environment Production
 ```
 
 Apply `artifacts/migrate.sql` using a deployment identity with schema-change permissions. The runtime application identity should use only the permissions needed by the application.

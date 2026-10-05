@@ -14,9 +14,10 @@ ballots, aggregate results, and combined API/SPA publishing.
 
 ## Run Locally
 
-The API requires a SQL Server connection string, a JWT secret of at least 32
-bytes, and Google/Microsoft OAuth client credentials. Configure them with
-environment variables or .NET user secrets; see `.env.example`.
+Development uses a local SQLite database (created automatically) and a
+development-only JWT key. Use **Dev Login (local only)** on the SPA login page
+without OAuth credentials. Production requires SQL Server, a JWT secret of at
+least 32 bytes, and Google/Microsoft OAuth credentials; see `.env.example`.
 
 Run the API:
 

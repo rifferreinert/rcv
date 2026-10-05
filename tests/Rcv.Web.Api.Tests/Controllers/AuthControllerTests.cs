@@ -351,6 +351,59 @@ public class AuthControllerTests : IClassFixture<AuthApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    // -----------------------------------------------------------------------
+    // GET /api/auth/dev-login
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task DevLogin_InDevelopment_SetsJwtCookieAndRedirectsToDashboard()
+    {
+        // Arrange
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        // Act
+        var response = await client.GetAsync("/api/auth/dev-login");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect,
+            "dev-login should redirect to the dashboard");
+
+        response.Headers.Location?.ToString().Should().Be("http://localhost:5173/dashboard",
+            "dev-login should redirect to the local frontend");
+
+        var setCookieHeaders = response.Headers
+            .Where(h => h.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase))
+            .SelectMany(h => h.Value)
+            .ToList();
+
+        setCookieHeaders.Should().Contain(h => h.StartsWith("rcv_jwt="),
+            "dev-login should set the rcv_jwt cookie");
+
+        setCookieHeaders.Should().Contain(h =>
+            h.StartsWith("rcv_jwt=") && h.Contains("httponly", StringComparison.OrdinalIgnoreCase),
+            "the rcv_jwt cookie must be httpOnly");
+    }
+
+    [Fact]
+    public async Task DevLogin_InProduction_ReturnsNotFoundWithoutJwtCookie()
+    {
+        await using var factory = new ProductionAuthApiFactory();
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            BaseAddress = new Uri("https://localhost"),
+        });
+
+        var response = await client.GetAsync("/api/auth/dev-login");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.Headers.TryGetValues("Set-Cookie", out var cookies);
+        (cookies ?? Array.Empty<string>()).Should().NotContain(cookie => cookie.StartsWith("rcv_jwt="));
+    }
 }
 
 /// <summary>

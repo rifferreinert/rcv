@@ -70,6 +70,7 @@ jobs:
           --no-build
           --idempotent
           --output artifacts/migrate.sql
+          -- --environment Production
 
       - name: Upload backend reports
         uses: actions/upload-artifact@v4

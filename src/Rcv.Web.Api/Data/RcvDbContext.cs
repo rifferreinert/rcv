@@ -21,23 +21,25 @@ public class RcvDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        var isSqlServer = !Database.IsSqlite();
+
         // User configuration
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(u => u.Id);
 
-            // Unique constraint on ExternalId + Provider combination
+            // Unique constraint on ExternalId + Provider combination (also covers lookup queries)
             entity.HasIndex(u => new { u.ExternalId, u.Provider })
                   .IsUnique()
                   .HasDatabaseName("IX_Users_ExternalId_Provider");
 
-            // Index for faster lookups
             entity.HasIndex(u => new { u.ExternalId, u.Provider })
                   .HasDatabaseName("IX_Users_Lookup");
 
             // Set default value for CreatedAt
-            entity.Property(u => u.CreatedAt)
-                  .HasDefaultValueSql("GETUTCDATE()");
+            if (isSqlServer)
+                entity.Property(u => u.CreatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
 
             // Relationships
             entity.HasMany(u => u.CreatedPolls)
@@ -68,8 +70,9 @@ public class RcvDbContext : DbContext
                   .HasDatabaseName("IX_Polls_CreatedAt");
 
             // Set default values
-            entity.Property(p => p.CreatedAt)
-                  .HasDefaultValueSql("GETUTCDATE()");
+            if (isSqlServer)
+                entity.Property(p => p.CreatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
 
             entity.Property(p => p.Status)
                   .HasConversion<string>()
@@ -106,8 +109,9 @@ public class RcvDbContext : DbContext
                   .HasDatabaseName("IX_PollOptions_PollId");
 
             // Set default value
-            entity.Property(o => o.CreatedAt)
-                  .HasDefaultValueSql("GETUTCDATE()");
+            if (isSqlServer)
+                entity.Property(o => o.CreatedAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
 
             // Relationship
             entity.HasOne(o => o.Poll)
@@ -134,15 +138,15 @@ public class RcvDbContext : DbContext
             entity.HasIndex(v => v.VoterId)
                   .HasDatabaseName("IX_Votes_VoterId");
 
-            // Configure JSON column for RankedChoices
-            // EF Core 9.0 with SQL Server automatically maps List<Guid> to native JSON type
-            entity.Property(v => v.RankedChoices)
-                  .HasColumnType("nvarchar(max)") // SQL Server uses nvarchar(max) for JSON
-                  .IsRequired();
+            // RankedChoices stored as JSON. SQL Server uses nvarchar(max); SQLite uses TEXT.
+            var rankedChoicesProp = entity.Property(v => v.RankedChoices).IsRequired();
+            if (isSqlServer)
+                rankedChoicesProp.HasColumnType("nvarchar(max)");
 
             // Set default value
-            entity.Property(v => v.CastAt)
-                  .HasDefaultValueSql("GETUTCDATE()");
+            if (isSqlServer)
+                entity.Property(v => v.CastAt)
+                      .HasDefaultValueSql("GETUTCDATE()");
 
             // Relationships
             entity.HasOne(v => v.Poll)

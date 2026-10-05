@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Rcv.Web.Api.Data;
 using Rcv.Web.Api.Data.Entities;
 using Rcv.Web.Api.Services;
@@ -290,5 +291,64 @@ public class VotingServiceTests
         var act = async () => await service.GetVoteCountAsync(Guid.NewGuid());
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
+    }
+
+    // -----------------------------------------------------------------------
+    // CastVoteAsync — cache invalidation
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task CastVoteAsync_NewVote_InvalidatesResultsCache()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        var user = await CreateTestUser(context);
+        var (poll, optionIds) = await CreateTestPoll(context, user.Id);
+
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new VotingService(
+            context, new PollLifecycleService(context, TimeProvider.System, cache), cache, TimeProvider.System);
+
+        var cacheKey = $"poll-results:{poll.Id:N}";
+        cache.Set(cacheKey, "cached-results-placeholder");
+
+        // Confirm the entry is present before acting
+        cache.TryGetValue(cacheKey, out _).Should().BeTrue("pre-condition: cache entry must exist before casting vote");
+
+        // Act
+        await service.CastVoteAsync(poll.Id, user.Id, optionIds);
+
+        // Assert
+        cache.TryGetValue(cacheKey, out _).Should().BeFalse("casting a vote must remove the cached results entry");
+    }
+
+    [Fact]
+    public async Task CastVoteAsync_UpdateVote_InvalidatesResultsCache()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        var user = await CreateTestUser(context);
+        var (poll, optionIds) = await CreateTestPoll(context, user.Id);
+
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new VotingService(
+            context, new PollLifecycleService(context, TimeProvider.System, cache), cache, TimeProvider.System);
+
+        // Cast the initial (new) vote to put the voter on record
+        await service.CastVoteAsync(poll.Id, user.Id, optionIds);
+
+        // Seed a stale cache entry that the update call must evict
+        var cacheKey = $"poll-results:{poll.Id:N}";
+        cache.Set(cacheKey, "stale-cached-results");
+
+        cache.TryGetValue(cacheKey, out _).Should().BeTrue("pre-condition: cache entry must exist before the update vote");
+
+        // Act — same voter, reversed ranking → triggers the UPDATE path
+        var reversed = new List<Guid>(optionIds);
+        reversed.Reverse();
+        await service.CastVoteAsync(poll.Id, user.Id, reversed);
+
+        // Assert
+        cache.TryGetValue(cacheKey, out _).Should().BeFalse("updating a vote must remove the cached results entry");
     }
 }

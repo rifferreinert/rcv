@@ -290,6 +290,7 @@ src/rcv-web-ui/test-results/
 .env
 .env.*
 !.env.example
+src/Rcv.Web.Api/rcv-dev.db*
 
 # Visual Studio 6 build log
 *.plg
